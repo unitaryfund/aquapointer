@@ -1,5 +1,61 @@
 import numpy as np
+import pickle
 from qiskit.quantum_info import SparsePauliOp
+
+# functions for importing the density slices
+def density_slices(d_list, basename, path):
+    # The 3D-RISM density slices are saved as pickled files in the folder MUP1.
+    # They are indexed by a number (see d_list) which represents the distance in Angstrom
+    # from the central slice.
+    densities = []
+    for d in d_list:
+        filename = path + f"d{d}" + basename
+        with open(filename, 'rb') as file_in:
+            densities.append(pickle.load(file_in))
+            
+    return densities
+
+def plane_points(d_list, basename, path):
+    # import slice coordinates (these are 3D coordinates in
+    # angstroms, they are needed at the very end to map
+    # excited qubits to positions in the protein cavity)
+    path = "../MUP1/MUP1_logfilter8_points/"
+    basename = "_plane_points_MUP1.p"
+    points = []
+    for d in d_list:
+        filename = path + f"d{d}" + basename
+        with open(filename, 'rb') as file_in:
+            points.append(pickle.load(file_in))
+    
+    return points
+
+def register_positions(d_list, basename, path):
+    # The register associated to each slide can be found in the folder nb/registers.
+    # Two types of files are saved there:
+    # - position_<#>.npy: the positions of the qubits in micrometers, as if they were in the QPU
+    # - rescaled_position_<#>.npy: the positions of the qubits on the same scale as the density slices
+
+    # import registers
+    path = "registers/"
+    basename = "position_"
+    positions = []
+    for i in range(len(d_list)):
+        with open(f'registers/position_{i}.npy', 'rb') as file_in:
+            pos = np.load(file_in)
+        positions.append(pos)
+    
+    return positions
+
+def rescaled_positions(d_list, basename, path):
+    basename = "rescaled_position_"
+    rescaled_positions = []
+    for i in range(len(d_list)):
+        with open(f'registers/rescaled_position_{i}.npy', 'rb') as file_in:
+            res_pos = np.load(file_in)
+        rescaled_positions.append(res_pos)
+    
+    return rescaled_positions
+
 
 def gaussian(var, m, x, y):
     """
@@ -90,34 +146,34 @@ def find_optimum(qubo: np.ndarray) -> tuple[list[int], float]:
     return optimal_b, min_energy
 
 def sparse_sigmaz_string(length: int, pos: list[int]) -> str:
-    sparse_sigmaz_str=""
+    sparse_sigmaz_str = ""
     for i in range(length):
         if i in pos:
-            sparse_sigmaz_str+="Z"
+            sparse_sigmaz_str += "Z"
         else:
-            sparse_sigmaz_str+="I"
+            sparse_sigmaz_str += "I"
     return sparse_sigmaz_str
 
 def get_Ising_hamiltonian(qubo: np.ndarray) -> SparsePauliOp:
     #the constant term (coefficient in front of II...I)
-    coeff_id=0.5*np.sum([qubo[i][i] for i in range(len(qubo))])+0.5*np.sum([np.sum([qubo[i][j] for j in range(i+1,len(qubo))]) for i in range(len(qubo))])
+    coeff_id = 0.5*np.sum([qubo[i][i] for i in range(len(qubo))])+0.5*np.sum([np.sum([qubo[i][j] for j in range(i+1,len(qubo))]) for i in range(len(qubo))])
 
     #the linear terms (coefficient in front of I ... I sigma^z_i I ... I)
-    coeff_linear=[0.5*np.sum([qubo[i][j] for j in range(len(qubo))]) for i in range(len(qubo))]
+    coeff_linear = [0.5*np.sum([qubo[i][j] for j in range(len(qubo))]) for i in range(len(qubo))]
 
     #the quadratic terms (coefficient in front of I ... I sigma^z_i I ... I sigma^z_j I ... I)
-    coeff_quadratic=0.25*qubo
+    coeff_quadratic = 0.25*qubo
 
     #creat the list of sparse pauli operators and coefficients
-    sparse_list=[(sparse_sigmaz_string(len(qubo), []), coeff_id)]
+    sparse_list = [(sparse_sigmaz_string(len(qubo), []), coeff_id)]
 
     for i in range(len(qubo)):
         sparse_list.append((sparse_sigmaz_string(len(qubo), [i]), coeff_linear[i]))
         for j in range(len(qubo)):
-            if i!=j:
+            if i != j:
                 sparse_list.append((sparse_sigmaz_string(len(qubo), [i, j]), coeff_quadratic[i][j]))
 
-    I2=SparsePauliOp.from_list(sparse_list)
+    I2 = SparsePauliOp.from_list(sparse_list)
 
     return I2
 
