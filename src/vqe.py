@@ -47,8 +47,7 @@ class VQE:
         for _ in range(iterations):
             res = self.run(params)
             params = res.x
-
-        return params
+        self.params = params
     
     def average_energy(self, params: np.ndarray, qubo: np.ndarray) -> float:
 

@@ -1,12 +1,12 @@
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
-from src.loaddata import SharedState
+from src.loaddata import LoadData
 
 class Qubo:
 
-    def __init__(self, sharedstate: SharedState) -> None:
-        self.ss = sharedstate
-        self.qubo_matrices = self.get_qubo_matrices(densities=self.ss.densities, rescaled_positions=self.ss.rescaled_register_positions)
+    def __init__(self, loaddata: LoadData) -> None:
+        self.ld = loaddata
+        self.qubo_matrices = self.get_qubo_matrices(densities=self.ld.densities, rescaled_positions=self.ld.rescaled_register_positions)
         hamiltonians = [self.get_ising_hamiltonian(qubo=qubo) for qubo in self.qubo_matrices]
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
 
