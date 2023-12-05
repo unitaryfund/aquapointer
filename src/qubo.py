@@ -1,6 +1,6 @@
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
-from src.sharedstate import SharedState
+from src.loaddata import SharedState
 
 class Qubo:
 

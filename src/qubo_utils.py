@@ -121,7 +121,7 @@ def get_qubo_matrices(densities: list[np.ndarray], rescaled_positions: list[np.n
     return qubo_matrices
 
 #Ising energy function (objective function to minimize)
-def Ising_energy(assignment: np.ndarray, qubo: np.ndarray) -> float:
+def ising_energy(assignment: np.ndarray, qubo: np.ndarray) -> float:
     return np.transpose(assignment) @ qubo @ assignment
 
 #for the classical brutef-force approach
@@ -154,7 +154,7 @@ def sparse_sigmaz_string(length: int, pos: list[int]) -> str:
             sparse_sigmaz_str += "I"
     return sparse_sigmaz_str
 
-def get_Ising_hamiltonian(qubo: np.ndarray) -> SparsePauliOp:
+def get_ising_hamiltonian(qubo: np.ndarray) -> SparsePauliOp:
     #the constant term (coefficient in front of II...I)
     coeff_id = 0.5*np.sum([qubo[i][i] for i in range(len(qubo))])+0.5*np.sum([np.sum([qubo[i][j] for j in range(i+1,len(qubo))]) for i in range(len(qubo))])
 

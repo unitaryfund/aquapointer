@@ -1,12 +1,12 @@
 import numpy as np
 import pickle
 
-BASE_PATH = "/Users/farrokhlabib/Documents/github/aquapointer/"
+BASE_PATH = "/Users/farrokhlabib/Documents/github/aquapointer/" # path to aquapointer directory
 DENS_DIR = "MUP1/MUP1_logfilter8_slices/"
 PP_DIR = "MUP1/MUP1_logfilter8_points/"
 REG_DIR = "registers/"
 
-class SharedState:
+class LoadData:
 
     def __init__(self) -> None:
         self.d_list = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
