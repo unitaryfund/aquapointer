@@ -84,19 +84,21 @@ def generate_pulse_sequences(device, register, dets, max_det, pulse_duration, om
 def run_qubo(
     density,
     executor,
-    device,
-    register,
+    proc,
     rescaled_pos,
     pos,
     variance,
     amplitude,
-    brad,
-    pulse_duration,
-    omega,
-    max_det,
     qubo_cost=default_cost,
     num_samples=1000,
 ):
+    device = proc.device
+    register = proc.register
+    brad = proc.pulse_settings.brad
+    pulse_duration = proc.pulse_settings.pulse_duration
+    omega = proc.pulse_settings.omega
+    max_det = proc.pulse_settings.max_det
+
     dets = scale_detunings(density, pos, rescaled_pos, brad, variance, max_det)
     pulse_sequence = generate_pulse_sequences(
         device, register, dets, max_det, pulse_duration, omega
