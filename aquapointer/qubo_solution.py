@@ -94,7 +94,8 @@ def run_qubo(
     pulse_duration,
     omega,
     max_det,
-    num_samples,
+    qubo_cost=default_cost,
+    num_samples=1000,
 ):
     dets = scale_detunings(density, pos, rescaled_pos, brad, variance, max_det)
     pulse_sequence = generate_pulse_sequences(
@@ -102,13 +103,13 @@ def run_qubo(
     )
     samples = executor(pulse_sequence, num_samples)
     solution = best_solution_from_samples(
-        samples, rescaled_pos, density, brad, variance, amplitude
+        samples, rescaled_pos, density, brad, variance, amplitude, qubo_cost,
     )
     return solution
 
 
 def best_solution_from_samples(
-    samples, rescaled_pos, density, brad, var, amp, qubo_cost=default_cost
+    samples, rescaled_pos, density, brad, var, amp, qubo_cost,
 ):
     best_solutions = []
     samplings = []
