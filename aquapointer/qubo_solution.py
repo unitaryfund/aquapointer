@@ -1,3 +1,4 @@
+import itertools
 import sys
 
 import matplotlib.pyplot as plt
@@ -14,22 +15,27 @@ def default_cost(rescaled_pos, density, variance, bitstring, brad, amp):
     return dsu.ising_energies(rescaled_pos, density, variance, [bitstring], brad, amp)
 
 
-def gaussian(amp, var, m, x, y):
-    """
-    Returns the value at point (`x`,`y`) of a sum of isotropic normal
-    distributions centered at `mean[0]`, `mean[1]`, ...
-    and variance `var`
-    """
-    return (
-        amp
-        * np.exp(-((x - m[0]) ** 2 + (y - m[1]) ** 2) / (2 * var))
-        / (2 * np.pi * var)
-    )
+def scale_gaussian(data, var, amp):
+    x = data[0, :]
+    y = data[1, :]
+    return amp * dsu.gaussian(var, [0, 0], x, y)
 
 
-def fit_gaussian(xdata, ydata):
-    parameters, _ = scipy.optimize.curve_fit(gaussian, xdata, ydata)
-    return parameters[0:2]
+def fit_gaussian(density):
+    # x_data = list(range(density.shape[0])) * density.shape[1]
+    # y_data = list(
+    #     itertools.chain.from_iterable(
+    #         [[d] * density.shape[1] for d in range(density.shape[1])]
+    #     )
+    # )
+    # parameters, _ = scipy.optimize.curve_fit(
+    #     scale_gaussian, np.array([x_data, y_data]), density.flatten()
+    # )
+    # var, amp = parameters[0], parameters[1]
+    var = 50 # TODO replace hard coded value
+    amp = 6 # TODO replace hard coded value
+    return var, amp
+
 
 
 def calculate_one_body_qubo_coeffs(density, rescaled_pos, variance, pos):
