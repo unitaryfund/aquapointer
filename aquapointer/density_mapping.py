@@ -13,9 +13,9 @@ def visualize_registers(registers, positions, rescaled_positions, densities):
     plt.show()
 
 
-def rescaled_positions_to_3d_map(best_solutions):
+def rescaled_positions_to_3d_map(best_solutions, rescaled_positions):
     qubit_indices = find_index_of_excited_qubits(best_solutions)
-    qubit_rescaled_positions = find_positions_of_excited_qubits(qubit_indices)
+    qubit_rescaled_positions = find_positions_of_excited_qubits(qubit_indices, rescaled_positions)
     water_indices = []
     for i,res_pos in enumerate(qubit_rescaled_positions):
         ls = []
