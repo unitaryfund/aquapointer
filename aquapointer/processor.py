@@ -33,7 +33,7 @@ class AnalogProcessor(Processor):
 
     def scale_grid_to_register(self):
         """Placeholder for position scaling function."""
-        with open(f'../registers/rescaled_position_{self.pos_id}.npy', 'rb') as file_in:
+        with open(f'../registers/rescaled_position_{self.pos_id[0]}.npy', 'rb') as file_in:
             res_pos = np.load(file_in)
         return res_pos
         
