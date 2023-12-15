@@ -28,7 +28,7 @@ class AnalogProcessor(Processor):
         self.device = device
         self.pos = pos,
         self.pos_id = pos_id,
-        self.register = register(pos)
+        self.register = register.Register.from_coordinates(pos)
         self.pulse_settings = pulse_settings
 
     def scale_grid_to_register(self):
