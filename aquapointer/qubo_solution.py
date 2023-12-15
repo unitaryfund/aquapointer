@@ -85,13 +85,13 @@ def run_qubo(
     density,
     executor,
     proc,
-    rescaled_pos,
-    pos,
     variance,
     amplitude,
     qubo_cost=default_cost,
     num_samples=1000,
 ):
+    pos = proc.pos[0]
+    rescaled_pos = proc.scale_grid_to_register()
     device = proc.device
     register = proc.register
     brad = proc.pulse_settings.brad

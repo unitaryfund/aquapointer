@@ -20,13 +20,6 @@ def find_water_positions(
     qubo_cost=default_cost,
     loc_from_bitstrings="k_means",
 ):
-    positions = []
-    registers = []
-    rescaled_positions = []
-    for p in processor_configs:
-        positions.append(p.pos)
-        registers.append(p.register)
-        rescaled_positions.append(p.scale_grid_to_register())
     
     variance, amplitude = fit_gaussian(densities[0])
 
@@ -37,8 +30,6 @@ def find_water_positions(
                 d,
                 executor,
                 processor_configs[k],
-                rescaled_positions[k],
-                positions[k],
                 variance,
                 amplitude,
                 qubo_cost,
