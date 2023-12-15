@@ -4,17 +4,6 @@ import matplotlib.pyplot as plt
 import utils.detuning_scale_utils as dsu
 
 
-def scale_grid_to_register(positions, registers):
-
-    rescaled_positions = []
-    for i in range(len(positions)):
-        with open(f'../registers/rescaled_position_{i}.npy', 'rb') as file_in:
-            res_pos = np.load(file_in)
-        rescaled_positions.append(res_pos)
-
-    return rescaled_positions
-
-
 def visualize_registers(registers, positions, rescaled_positions, densities):
     for k, density in enumerate(densities):
         print(f"Processing density {k+1} of {len(densities)}")

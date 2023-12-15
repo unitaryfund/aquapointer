@@ -1,4 +1,5 @@
-from typing import Dict
+import numpy as np 
+
 from pulser import register
 
 
@@ -20,13 +21,22 @@ class AnalogProcessor(Processor):
     def __init__(
         self,
         device,
-        register: register,
+        pos,
+        pos_id,
         pulse_settings: PulseSettings,
     ) -> None:
         self.device = device
-        self.register = register
+        self.pos = pos,
+        self.pos_id = pos_id,
+        self.register = register(pos)
         self.pulse_settings = pulse_settings
 
+    def scale_grid_to_register(self):
+        """Placeholder for position scaling function."""
+        with open(f'../registers/rescaled_position_{self.pos_id}.npy', 'rb') as file_in:
+            res_pos = np.load(file_in)
+        return res_pos
+        
 
 class DigitalProcessor(Processor):
     def __init__(
