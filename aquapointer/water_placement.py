@@ -3,9 +3,7 @@ import sys
 import scipy
 
 sys.path.append("../aquapointer/")
-from density_mapping import (
-    rescaled_positions_to_3d_map,
-)
+from density_mapping import rescaled_positions_to_3d_map
 from qubo_solution import default_cost, fit_gaussian, run_qubo
 
 
@@ -16,7 +14,7 @@ def find_water_positions(
     processor_configs,
     num_samples=1000,
     qubo_cost=default_cost,
-    loc_from_bitstrings="k_means",
+    location_clustering=None,
 ):
     variance, amplitude = fit_gaussian(densities[0])
 
@@ -38,10 +36,20 @@ def find_water_positions(
         bitstrings, [p.scale_grid_to_register() for p in processor_configs]
     )
     water_positions = []
+
     # from the indices find the water molecule positions in angstroms
     for i, slice in enumerate(water_indices):
-        ls = []
         for idx_i, idx_j in slice:
-            ls.append(points[i][idx_i, idx_j])
-        water_positions.append(ls)
-    return water_positions
+            water_positions.append(points[i][idx_i, idx_j])
+    if not location_clustering:
+        return water_positions
+
+    return location_clustering(water_positions)
+
+
+def location_clustering_kmeans(water_positions):
+    obs = scipy.cluster.vq.whiten(water_positions)
+    k_or_guess = len(water_positions)  # placeholder
+    final_positions = scipy.cluster.vq.kmeans(obs, k_or_guess)
+
+    return final_positions
