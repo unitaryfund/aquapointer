@@ -1,3 +1,1 @@
-import sys
-sys.path.append('../aquapointer/')
-import utils, benchmark_utils, density_utils, detuning_scale_utils
+from aquapointer import density_mapping, processor, qubo_solution, water_placement
