@@ -5,6 +5,6 @@ setup(name='aquapointer',
       version='0.0.1a', 
       description='aquapointer', 
       author='Unitary Fund', 
-      packages = find_packages(include=['aquapointer', 'aquapointer.*']) 
+      packages = find_packages(include=['aquapointer/', 'aquapointer.*']) 
       )
 
