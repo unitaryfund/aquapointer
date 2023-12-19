@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import utils.detuning_scale_utils as dsu
+from aquapointer.utils import detuning_scale_utils as dsu
 
 
 def visualize_registers(registers, positions, rescaled_positions, densities):
