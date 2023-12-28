@@ -15,25 +15,23 @@ def default_cost(rescaled_pos, density, variance, bitstring, brad, amp):
     return dsu.ising_energies(rescaled_pos, density, variance, [bitstring], brad, amp)
 
 
-def scale_gaussian(data, var, amp):
-    x = data[0, :]
-    y = data[1, :]
-    return amp * dsu.gaussian(var, [0, 0], x, y)
+def scale_gaussian(xy_data, var, m_x, m_y, amp):
+    x = xy_data[0, :]
+    y = xy_data[1, :]
+    return amp * dsu.gaussian(x, y, var, m_x, m_y)
 
 
 def fit_gaussian(density):
-    # x_data = list(range(density.shape[0])) * density.shape[1]
-    # y_data = list(
-    #     itertools.chain.from_iterable(
-    #         [[d] * density.shape[1] for d in range(density.shape[1])]
-    #     )
-    # )
-    # parameters, _ = scipy.optimize.curve_fit(
-    #     scale_gaussian, np.array([x_data, y_data]), density.flatten()
-    # )
-    # var, amp = parameters[0], parameters[1]
-    var = 50 # TODO replace hard coded value
-    amp = 6 # TODO replace hard coded value
+    x_data = list(range(-int(density.shape[0] / 2), int(density.shape[0] / 2))) * density.shape[1]
+    y_data = list(
+        itertools.chain.from_iterable(
+            [[d] * density.shape[1] for d in range(-int(density.shape[1] / 2), int(density.shape[1] / 2))]
+        )
+    )
+    parameters, _ = scipy.optimize.curve_fit(
+        scale_gaussian, np.array([x_data, y_data]), density.flatten()
+    )
+    var, amp = parameters[0], parameters[1]
     return var, amp
 
 

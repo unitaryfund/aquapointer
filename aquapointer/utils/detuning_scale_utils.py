@@ -9,22 +9,20 @@ from pulser_simulation import Simulation
 from aquapointer.utils import benchmark_utils as bmu
 
 
-def gaussian(var, m, x, y):
+def gaussian(x, y, var, m_x, m_y):
     """
     Returns the value at point (`x`,`y`) of a sum of isotropic normal
     distributions centered at `mean[0]`, `mean[1]`, ...
     and variance `var`
     """
-    res = 0
-    return np.exp(-((x - m[0]) ** 2 + (y - m[1]) ** 2) / (2 * var)) / (2 * np.pi * var)
+    return np.exp(-((x - m_x) ** 2 + (y - m_y) ** 2) / (2 * var)) / (2 * np.pi * var)
 
 
 def gaussian_mixture(shape, var, means):
     res = np.zeros(shape)
     for i in range(len(res)):
         for j in range(len(res[0])):
-            for mean in means:
-                res[j, i] += gaussian(var, mean, i, j)
+            res[j, i] = gaussian(var, means, i, j)
     return res
 
 
