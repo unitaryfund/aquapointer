@@ -19,7 +19,7 @@ class VQE:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
 
     def run(self, alpha: float, method="COBYLA"):
-        res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, options={'disp': True} )
+        res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, options={'disp': False} )
         self.params = res.x
         return res
     
