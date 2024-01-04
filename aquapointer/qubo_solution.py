@@ -16,22 +16,24 @@ def default_cost(rescaled_pos, density, variance, bitstring, brad, amp):
 
 
 def scale_gaussian(xy_data, var, m_x, m_y, amp):
-    x = xy_data[0, :]
-    y = xy_data[1, :]
+    x = xy_data[:, 0]
+    y = xy_data[:, 1]
     return amp * dsu.gaussian(x, y, var, m_x, m_y)
+    # return x, y
 
 
 def fit_gaussian(density):
-    x_data = list(range(-int(density.shape[0] / 2), int(density.shape[0] / 2))) * density.shape[1]
-    y_data = list(
-        itertools.chain.from_iterable(
-            [[d] * density.shape[1] for d in range(-int(density.shape[1] / 2), int(density.shape[1] / 2))]
-        )
-    )
-    parameters, _ = scipy.optimize.curve_fit(
-        scale_gaussian, np.array([x_data, y_data]), density.flatten()
-    )
+    m, n = density.shape
+    xy_data = m * np.ones((m * n, 2))
+    d_data = np.ones((m * n,))
+    for i in range(m):  
+        for j in range(n):
+            xy_data[i + m * j, 0] = i
+            xy_data[i + m * j, 1] = j
+            d_data[i + m * j] = density[i, j]
+    parameters, _ = scipy.optimize.curve_fit(scale_gaussian, xy_data, d_data)
     return parameters
+    # return xy_data, d_data
 
 
 def calculate_one_body_qubo_coeffs(density, rescaled_pos, variance, pos):
