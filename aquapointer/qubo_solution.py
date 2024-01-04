@@ -31,9 +31,7 @@ def fit_gaussian(density):
     parameters, _ = scipy.optimize.curve_fit(
         scale_gaussian, np.array([x_data, y_data]), density.flatten()
     )
-    var, amp = parameters[0], parameters[1]
-    return var, amp
-
+    return parameters
 
 
 def calculate_one_body_qubo_coeffs(density, rescaled_pos, variance, pos):

@@ -1,3 +1,4 @@
+from statistics import variance
 import sys
 
 import scipy
@@ -16,8 +17,9 @@ def find_water_positions(
     qubo_cost=default_cost,
     location_clustering=None,
 ):
-    variance, amplitude = fit_gaussian(densities[0])
-
+    params = fit_gaussian(densities[0])
+    variance, amplitude = params[0], params[3]
+    
     bitstrings = []
     for k, d in enumerate(densities):
         bitstrings.append(
