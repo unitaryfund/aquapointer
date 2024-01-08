@@ -18,8 +18,41 @@ def default_cost(rescaled_pos, density, variance, bitstring, brad, amp):
 def scale_gaussian(xy_data, var, m_x, m_y, amp):
     x = xy_data[:, 0]
     y = xy_data[:, 1]
-    return amp * dsu.gaussian(x, y, var, m_x, m_y)
-    # return x, y
+    return amp * dsu.gaussian(var, [m_x, m_y], x, y)
+
+
+def scale_shift_gaussian(data, var, m_x, m_y, amp):
+    x = data[:, 0]
+    y = data[:, 1]
+    d = data[:, 2]
+    return d - amp * dsu.gaussian(var, [m_x, m_y], x, y)
+
+
+def scale_gaussian_mixture(xy_data, var, amp, m_x, m_y):
+    x = xy_data[:, 0]
+    y = xy_data[:, 1]
+    return amp * dsu.gaussian_mixture(x, y, var, [(m_x, m_y)])
+
+
+def fit_gaussian_mixture(density):
+    xy_data = np.argwhere(density)
+    d_data = []
+    for row in xy_data:
+        d_data.append(density[row[0], row[1]])
+    parameters, _ = scipy.optimize.curve_fit(scale_gaussian, xy_data, d_data)
+    return parameters
+
+
+def fit_shifted_gaussian(density):
+    m, n = density.shape
+    data = m * np.ones((m * n, 3))
+    for i in range(m):  
+        for j in range(n):
+            data[i + m * j, 0] = i
+            data[i + m * j, 1] = j
+            data[i + m * j, 2] = density[i, j]
+    parameters, _ = scipy.optimize.curve_fit(scale_shift_gaussian, data, data[:, 2])
+    return parameters
 
 
 def fit_gaussian(density):
@@ -33,7 +66,6 @@ def fit_gaussian(density):
             d_data[i + m * j] = density[i, j]
     parameters, _ = scipy.optimize.curve_fit(scale_gaussian, xy_data, d_data)
     return parameters
-    # return xy_data, d_data
 
 
 def calculate_one_body_qubo_coeffs(density, rescaled_pos, variance, pos):
