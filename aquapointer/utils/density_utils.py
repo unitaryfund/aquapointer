@@ -1,3 +1,9 @@
+# Copyright (C) Unitary Fund
+#
+# This source code is licensed under the GPL license (v3) found in the
+# LICENSE file in the root directory of this source tree.
+
+
 import numpy as np
 from pulser import Pulse, Sequence, Register
 from pulser.devices import IroiseMVP, MockDevice
