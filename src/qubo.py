@@ -83,7 +83,7 @@ class Qubo:
         return [int(digit) for digit in result]
 
     #find for a given qubo matrix the optimal bitstring that minimizes energy by going over all possible bitstrings.
-    def find_optimum(self, qubo: np.ndarray) -> tuple[list[int], float]:
+    def find_optimum(self, qubo: np.ndarray) -> tuple[str, float]:
         shape = qubo.shape
         L = shape[0]
 
@@ -96,7 +96,8 @@ class Qubo:
                 min_energy = energy
                 optimal_b = b
         
-        return optimal_b, min_energy
+        sol = ''.join(map(str, optimal_b))        
+        return sol, min_energy
 
     def _sparse_sigmaz_string(self, length: int, pos: list[int]) -> str:
         sparse_sigmaz_str = ""
