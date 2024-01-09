@@ -1,3 +1,8 @@
+# Copyright (C) Unitary Fund, Pasqal, and Qubit Pharmaceuticals.
+#
+# This source code is licensed under the GPL license (v3) found in the
+# LICENSE file in the root directory of this source tree.
+
 import numpy as np
 import pickle
 from qiskit.quantum_info import SparsePauliOp
@@ -130,7 +135,7 @@ def bitfield(n: int, L: int) -> list[int]:
     return [int(digit) for digit in result]
 
 #find for a given qubo matrix the optimal bitstring that minimizes energy by going over all possible bitstrings.
-def find_optimum(qubo: np.ndarray) -> tuple[list[int], float]:
+def find_optimum(qubo: np.ndarray) -> tuple[str, float]:
     shape = qubo.shape
     L = shape[0]
 
@@ -138,12 +143,12 @@ def find_optimum(qubo: np.ndarray) -> tuple[list[int], float]:
 
     for n in range(2**L):
         b = bitfield(n=n, L=L)
-        energy = Ising_energy(assignment=b, qubo=qubo)
+        energy = ising_energy(assignment=b, qubo=qubo)
         if energy < min_energy:
             min_energy = energy
             optimal_b = b
-    
-    return optimal_b, min_energy
+    sol = ''.join(map(str, optimal_b))
+    return sol, min_energy
 
 def sparse_sigmaz_string(length: int, pos: list[int]) -> str:
     sparse_sigmaz_str = ""
