@@ -1,10 +1,17 @@
+# Copyright (C) Unitary Fund, Pasqal, and Qubit Pharmaceuticals.
+#
+# This source code is licensed under the GPL license (v3) found in the
+# LICENSE file in the root directory of this source tree.
+
 import numpy as np
 import pickle
 
-BASE_PATH = "/Users/farrokhlabib/Documents/github/aquapointer/" # path to aquapointer directory
-DENS_DIR = "MUP1/MUP1_logfilter8_slices/"
-PP_DIR = "MUP1/MUP1_logfilter8_points/"
-REG_DIR = "registers/"
+from pathlib import Path
+
+BASE_PATH = str(Path.cwd().parent)
+DENS_DIR = "/MUP1/MUP1_logfilter8_slices/"
+PP_DIR = "/MUP1/MUP1_logfilter8_points/"
+REG_DIR = "/registers/"
 
 class LoadData:
 
