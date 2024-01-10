@@ -1,4 +1,4 @@
-# Copyright (C) Unitary Fund, Pasqal, and Qubit Pharmaceuticals. 
+# Copyright (C) Unitary Fund, Pasqal, and Qubit Pharmaceuticals.
 #
 # This source code is licensed under the GPL license (v3) found in the
 # LICENSE file in the root directory of this source tree.
@@ -6,75 +6,61 @@
 
 import itertools
 import sys
+from typing import Callable, List, Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy
+from numpy.typing import NDArray
 from pulser import Pulse, Register, Sequence
+from pulser.backend.qpu import QPUBackend
 from pulser.waveforms import InterpolatedWaveform
 
 sys.path.append("../aquapointer/")
 import utils.detuning_scale_utils as dsu
 
 
-def default_cost(rescaled_pos, density, variance, bitstring, brad, amp):
+def default_cost(
+    rescaled_pos: NDArray,
+    density: NDArray,
+    variance: float,
+    bitstring: str,
+    brad: float,
+    amp: float,
+) -> List[Tuple[float]]:
     return dsu.ising_energies(rescaled_pos, density, variance, [bitstring], brad, amp)
 
 
-def scale_gaussian(xy_data, var, m_x, m_y, amp):
-    x = xy_data[:, 0]
-    y = xy_data[:, 1]
-    return amp * dsu.gaussian(var, [m_x, m_y], x, y)
+def scale_gaussian(
+    xy_data: NDArray, var: float, m_x: float, m_y: float, amp: float
+) -> float:
+    x = xy_data[0, :]
+    y = xy_data[1, :]
+    return amp * dsu.gaussian(x, y, var, m_x, m_y)
 
 
-def scale_shift_gaussian(data, var, m_x, m_y, amp):
-    x = data[:, 0]
-    y = data[:, 1]
-    d = data[:, 2]
-    return d - amp * dsu.gaussian(var, [m_x, m_y], x, y)
+def fit_gaussian(density: NDArray) -> Tuple[float]:
+    x_data = (
+        list(range(-int(density.shape[0] / 2), int(density.shape[0] / 2)))
+        * density.shape[1]
+    )
+    y_data = list(
+        itertools.chain.from_iterable(
+            [
+                [d] * density.shape[1]
+                for d in range(-int(density.shape[1] / 2), int(density.shape[1] / 2))
+            ]
+        )
+    )
+    parameters, _ = scipy.optimize.curve_fit(
+        scale_gaussian, np.array([x_data, y_data]), density.flatten()
+    )
+    var, amp = parameters[0], parameters[1]
+    return var, amp
 
 
-def scale_gaussian_mixture(xy_data, var, amp, m_x, m_y):
-    x = xy_data[:, 0]
-    y = xy_data[:, 1]
-    return amp * dsu.gaussian_mixture(x, y, var, [(m_x, m_y)])
-
-
-def fit_gaussian_mixture(density):
-    xy_data = np.argwhere(density)
-    d_data = []
-    for row in xy_data:
-        d_data.append(density[row[0], row[1]])
-    parameters, _ = scipy.optimize.curve_fit(scale_gaussian, xy_data, d_data)
-    return parameters
-
-
-def fit_shifted_gaussian(density):
-    m, n = density.shape
-    data = m * np.ones((m * n, 3))
-    for i in range(m):  
-        for j in range(n):
-            data[i + m * j, 0] = i
-            data[i + m * j, 1] = j
-            data[i + m * j, 2] = density[i, j]
-    parameters, _ = scipy.optimize.curve_fit(scale_shift_gaussian, data, data[:, 2])
-    return parameters
-
-
-def fit_gaussian(density):
-    m, n = density.shape
-    xy_data = m * np.ones((m * n, 2))
-    d_data = np.ones((m * n,))
-    for i in range(m):  
-        for j in range(n):
-            xy_data[i + m * j, 0] = i
-            xy_data[i + m * j, 1] = j
-            d_data[i + m * j] = density[i, j]
-    parameters, _ = scipy.optimize.curve_fit(scale_gaussian, xy_data, d_data)
-    return parameters
-
-
-def calculate_one_body_qubo_coeffs(density, rescaled_pos, variance, pos):
+def calculate_one_body_qubo_coeffs(
+    density: NDArray, rescaled_pos: NDArray, variance: float, pos: NDArray
+) -> Tuple[NDArray, float]:
     gamma_list = dsu.gamma_list(density, rescaled_pos, variance)
     distances_density = dsu.find_possible_distances(rescaled_pos)
     distances_register = dsu.find_possible_distances(pos)
@@ -82,7 +68,14 @@ def calculate_one_body_qubo_coeffs(density, rescaled_pos, variance, pos):
     return gamma_list, scale
 
 
-def scale_detunings(density, pos, rescaled_pos, brad, variance, max_det):
+def scale_detunings(
+    density: NDArray,
+    pos: NDArray,
+    rescaled_pos: NDArray,
+    brad: float,
+    variance: float,
+    max_det: float,
+) -> NDArray:
     gamma_list, scale = calculate_one_body_qubo_coeffs(
         density, rescaled_pos, variance, pos
     )
@@ -100,7 +93,14 @@ def scale_detunings(density, pos, rescaled_pos, brad, variance, max_det):
     return dets
 
 
-def generate_pulse_sequences(device, register, dets, max_det, pulse_duration, omega):
+def generate_pulse_sequences(
+    device: QPUBackend,
+    register: Register,
+    dets: List[float],
+    max_det: float,
+    pulse_duration: float,
+    omega: float,
+) -> Sequence:
     """Executes a pulse sequence and returns resulting bitstrings"""
     seq = Sequence(register, device)
     # add an adiabatic pulse for every qubit
@@ -118,14 +118,14 @@ def generate_pulse_sequences(device, register, dets, max_det, pulse_duration, om
 
 
 def run_qubo(
-    density,
-    executor,
-    proc,
-    variance,
-    amplitude,
-    qubo_cost=default_cost,
-    num_samples=1000,
-):
+    density: NDArray,
+    executor: Callable[[Sequence, int]],
+    proc: QPUBackend,
+    variance: float,
+    amplitude: float,
+    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float]] = default_cost,
+    num_samples: int = 1000,
+) -> str:
     pos = proc.pos[0]
     rescaled_pos = proc.scale_grid_to_register()
     device = proc.device
@@ -141,14 +141,26 @@ def run_qubo(
     )
     samples = executor(pulse_sequence, num_samples)
     solution = best_solution_from_samples(
-        samples, rescaled_pos, density, brad, variance, amplitude, qubo_cost,
+        samples,
+        rescaled_pos,
+        density,
+        brad,
+        variance,
+        amplitude,
+        qubo_cost,
     )
     return solution
 
 
 def best_solution_from_samples(
-    samples, rescaled_pos, density, brad, var, amp, qubo_cost,
-):
+    samples: int,
+    rescaled_pos: NDArray,
+    density: NDArray,
+    brad: float,
+    var: float,
+    amp: float,
+    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float]] = default_cost,
+) -> str:
     best_solutions = []
     samplings = []
     quantum_solutions = sorted(samples.items(), key=lambda x: x[1], reverse=True)

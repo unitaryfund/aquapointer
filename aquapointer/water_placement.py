@@ -4,27 +4,28 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import sys
+from typing import Callable, List, Optional
 
 import scipy
-
-sys.path.append("../aquapointer/")
 from density_mapping import rescaled_positions_to_3d_map
+from numpy.typing import NDArray
+from processor import Processor
+from pulser import Sequence
 from qubo_solution import default_cost, fit_gaussian, run_qubo
 
 
 def find_water_positions(
-    densities,
-    points,
-    executor,
-    processor_configs,
-    num_samples=1000,
-    qubo_cost=default_cost,
-    location_clustering=None,
-):
+    densities: List[NDArray],
+    points: List[NDArray],
+    executor: Callable[[Sequence, int]],
+    processor_configs: List[Processor],
+    num_samples: int = 1000,
+    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float]] = default_cost,
+    location_clustering: Optional[Callable[[List[List[float]]]]] = None,
+) -> List[List[float]]:
     params = fit_gaussian(densities[0])
     variance, amplitude = params[0], params[3]
-    
+
     bitstrings = []
     for k, d in enumerate(densities):
         bitstrings.append(
@@ -54,7 +55,7 @@ def find_water_positions(
     return location_clustering(water_positions)
 
 
-def location_clustering_kmeans(water_positions):
+def location_clustering_kmeans(water_positions: List[List[float]]) -> List[List[float]]:
     obs = scipy.cluster.vq.whiten(water_positions)
     k_or_guess = len(water_positions)  # placeholder
     final_positions = scipy.cluster.vq.kmeans(obs, k_or_guess)
