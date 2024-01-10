@@ -5,7 +5,7 @@
 
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
-from src.loaddata import LoadData
+from aquapointer.digital.loaddata import LoadData
 
 class Qubo:
 

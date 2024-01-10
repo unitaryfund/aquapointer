@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from numpy.typing import NDArray
 from pulser.register import Register
 
-from aquapointer.utils import detuning_scale_utils as dsu
+from aquapointer.analog.utils import detuning_scale_utils as dsu
 
 
 def visualize_registers(

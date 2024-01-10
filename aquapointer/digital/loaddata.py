@@ -9,8 +9,8 @@ import pickle
 from pathlib import Path
 
 BASE_PATH = str(Path.cwd().parent)
-DENS_DIR = "/MUP1/MUP1_logfilter8_slices/"
-PP_DIR = "/MUP1/MUP1_logfilter8_points/"
+DENS_DIR = "/data/MUP1/MUP1_logfilter8_slices/"
+PP_DIR = "/data/MUP1/MUP1_logfilter8_points/"
 REG_DIR = "/registers/"
 
 class LoadData:

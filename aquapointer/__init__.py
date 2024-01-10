@@ -4,4 +4,5 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from aquapointer.utils import benchmark_utils, density_utils, detuning_scale_utils
+from aquapointer.analog import density_mapping, qubo_solution, water_placement, utils
+from aquapointer.analog_digital import processor
