@@ -4,4 +4,5 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from aquapointer import density_mapping, processor, qubo_solution, water_placement
+from aquapointer.analog import density_mapping, qubo_solution, water_placement, utils
+from aquapointer.analog_digital import processor

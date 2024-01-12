@@ -12,7 +12,7 @@ from pulser.devices import Chadoq2, MockDevice
 from pulser.waveforms import BlackmanWaveform, InterpolatedWaveform
 from pulser_simulation import Simulation
 
-from aquapointer.utils import benchmark_utils as bmu
+from aquapointer.analog.utils import benchmark_utils as bmu
 
 
 def gaussian(var, m, x, y):

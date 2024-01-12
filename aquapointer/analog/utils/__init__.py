@@ -4,4 +4,4 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from aquapointer.utils import benchmark_utils, density_utils, detuning_scale_utils
+from aquapointer.analog.utils import benchmark_utils, density_utils, detuning_scale_utils

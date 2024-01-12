@@ -9,7 +9,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit import QuantumCircuit
 
 from scipy.optimize import minimize
-from src.qubo_utils import ising_energy
+from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
     def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: Sampler, params: np.ndarray | None) -> None:
