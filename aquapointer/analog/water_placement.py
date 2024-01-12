@@ -4,14 +4,15 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Callable, List, Optional, Any
+from typing import Any, Callable, List, Optional
 
 import scipy
-from aquapointer.analog.density_mapping import rescaled_positions_to_3d_map
 from numpy.typing import NDArray
-from aquapointer.analog_digital.processor import Processor
 from pulser import Sequence
+
+from aquapointer.analog.density_mapping import rescaled_positions_to_3d_map
 from aquapointer.analog.qubo_solution import default_cost, fit_gaussian, run_qubo
+from aquapointer.analog_digital.processor import Processor
 
 
 def find_water_positions(
@@ -20,7 +21,9 @@ def find_water_positions(
     executor: Callable[[Sequence, int], Any],
     processor_configs: List[Processor],
     num_samples: int = 1000,
-    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float], float] = default_cost,
+    qubo_cost: Callable[
+        [NDArray, NDArray, float, str, float, float], float
+    ] = default_cost,
     location_clustering: Optional[Callable[[List[List[float]]], List[Any]]] = None,
 ) -> List[List[float]]:
     params = fit_gaussian(densities[0])

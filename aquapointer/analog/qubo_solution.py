@@ -5,7 +5,7 @@
 
 
 import itertools
-from typing import Callable, List, Tuple, Any
+from typing import Any, Callable, List, Tuple
 
 import numpy as np
 import scipy
@@ -13,7 +13,6 @@ from numpy.typing import NDArray
 from pulser import Pulse, Register, Sequence
 from pulser.backend.qpu import QPUBackend
 from pulser.waveforms import InterpolatedWaveform
-
 
 import aquapointer.analog.utils.detuning_scale_utils as dsu
 
@@ -121,7 +120,9 @@ def run_qubo(
     proc: QPUBackend,
     variance: float,
     amplitude: float,
-    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float], float] = default_cost,
+    qubo_cost: Callable[
+        [NDArray, NDArray, float, str, float, float], float
+    ] = default_cost,
     num_samples: int = 1000,
 ) -> str:
     pos = proc.pos[0]
@@ -157,7 +158,9 @@ def best_solution_from_samples(
     brad: float,
     var: float,
     amp: float,
-    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float], float] = default_cost,
+    qubo_cost: Callable[
+        [NDArray, NDArray, float, str, float, float], float
+    ] = default_cost,
 ) -> str:
     best_solutions = []
     samplings = []
