@@ -34,7 +34,7 @@ def scale_gaussian(
 ) -> float:
     x = xy_data[0, :]
     y = xy_data[1, :]
-    return amp * dsu.gaussian(x, y, var, m_x, m_y)
+    return amp * dsu.gaussian(var, [m_x, m_y], x, y)
 
 
 def fit_gaussian(density: NDArray) -> Tuple[float]:
@@ -53,8 +53,7 @@ def fit_gaussian(density: NDArray) -> Tuple[float]:
     parameters, _ = scipy.optimize.curve_fit(
         scale_gaussian, np.array([x_data, y_data]), density.flatten()
     )
-    var, amp = parameters[0], parameters[1]
-    return var, amp
+    return parameters
 
 
 def calculate_one_body_qubo_coeffs(
