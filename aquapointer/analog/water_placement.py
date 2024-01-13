@@ -26,11 +26,11 @@ def find_water_positions(
     ] = default_cost,
     location_clustering: Optional[Callable[[List[List[float]]], List[Any]]] = None,
 ) -> List[List[float]]:
-    params = fit_gaussian(densities[0])
-    variance, amplitude = params[0], params[3]
 
     bitstrings = []
     for k, d in enumerate(densities):
+        params = fit_gaussian(d)
+        variance, amplitude = params[0], params[3]
         bitstrings.append(
             run_qubo(
                 d,
