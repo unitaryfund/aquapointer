@@ -15,6 +15,10 @@ from aquapointer.analog.qubo_solution import default_cost, fit_gaussian, run_qub
 from aquapointer.analog_digital.processor import Processor
 
 
+"""High-level tools for finding the locations of water molecules in a protein
+cavity."""
+
+
 def find_water_positions(
     densities: List[NDArray],
     points: List[NDArray],
@@ -26,7 +30,27 @@ def find_water_positions(
     ] = default_cost,
     location_clustering: Optional[Callable[[List[List[float]]], List[Any]]] = None,
 ) -> List[List[float]]:
+    r"""Finds the locations of water molecules in a protein cavity from 2-D
+    arrays of density values of the cavity.
 
+    Args:
+        densities: List of density slices of the protein cavity as 2-D arrays
+            of density values.
+        points: List of arrays containing coordinates corresponding to each
+            element of the density arrays.
+        executor: Function that executes a pulse sequence on a quantum backend.
+        processor_configs: List of ``Processor`` objects storing settings for
+            running on a quantum backend.
+        num_samples: Number of times to execute the quantum experiment or
+            simulation on the backend.
+        qubo_cost: Cost function to be optimized in the QUBO.
+        location_clustering: Optional function for merging duplicate locations
+            (typically identified in different layers).
+
+    Returns:
+        List of 3-D coordinates of the locations of water molecules in the
+            protein cavity.
+    """
     bitstrings = []
     for k, d in enumerate(densities):
         params = fit_gaussian(d)
@@ -59,6 +83,10 @@ def find_water_positions(
 
 
 def location_clustering_kmeans(water_positions: List[List[float]]) -> List[List[float]]:
+    r"""Takes a list of 3-D coordinates of the locations of water molecules in the
+    protein cavity and merges each set of duplicate locations into a
+    single location.
+    """
     obs = scipy.cluster.vq.whiten(water_positions)
     k_or_guess = len(water_positions)  # placeholder
     final_positions = scipy.cluster.vq.kmeans(obs, k_or_guess)
