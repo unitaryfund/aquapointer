@@ -4,8 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import itertools
-from typing import Callable, List, Tuple, Any
+from typing import Any, Callable, List, Tuple
 
 import numpy as np
 import scipy
@@ -13,7 +12,6 @@ from numpy.typing import NDArray
 from pulser import Pulse, Register, Sequence
 from pulser.backend.qpu import QPUBackend
 from pulser.waveforms import InterpolatedWaveform
-
 
 import aquapointer.analog.utils.detuning_scale_utils as dsu
 
@@ -26,40 +24,72 @@ def default_cost(
     brad: float,
     amp: float,
 ) -> List[Tuple[float]]:
+    r"""calculate QUBO cost of each bitstring in terms of the Ising energy"""
+
     return dsu.ising_energies(rescaled_pos, density, variance, [bitstring], brad, amp)
 
 
 def scale_gaussian(
     xy_data: NDArray, var: float, m_x: float, m_y: float, amp: float
 ) -> float:
-    x = xy_data[0, :]
-    y = xy_data[1, :]
-    return amp * dsu.gaussian(x, y, var, m_x, m_y)
+    r"""Calculates the value at each point on a 2-D grid of a sum of isotropic
+    normal distributions centered at ``m_x``, ``m_y``, ... with variance
+    ``var`` and amplitude ``amp``.
+
+    Args:
+        xy_data: Array of indices of density array elements.
+        var: Variance of the distribution.
+        m_x: Center of the distribution along dimension 0 of the density array.
+        m_y: Center of the distribution along dimension 1 of the density array.
+        amp: Amplitude of the distribution.
+
+    Returns:
+        The value at each point on a 2-D grid of a sum of isotropic
+    normal distributions.
+    """
+    x = xy_data[:, 0]
+    y = xy_data[:, 1]
+    return amp * dsu.gaussian(var, [m_x, m_y], x, y)
 
 
 def fit_gaussian(density: NDArray) -> Tuple[float]:
-    x_data = (
-        list(range(-int(density.shape[0] / 2), int(density.shape[0] / 2)))
-        * density.shape[1]
-    )
-    y_data = list(
-        itertools.chain.from_iterable(
-            [
-                [d] * density.shape[1]
-                for d in range(-int(density.shape[1] / 2), int(density.shape[1] / 2))
-            ]
-        )
-    )
+    r"""Fits density data to a sum of isotropic normal distributions on a 2-D
+    grid and returns the variance, center (in dimenions 0 and in dimension 1),
+    and amplitude of the distribution.
+    """
+    m, n = density.shape
+    xy_data = np.zeros((m * n, 2))
+    d_data = np.zeros(m * n)
+    for i in range(m):
+        for j in range(n):
+            xy_data[n * i + j, 0] = i
+            xy_data[n * i + j, 1] = j
+            d_data[n * i + j] = density[i, j]
+
     parameters, _ = scipy.optimize.curve_fit(
-        scale_gaussian, np.array([x_data, y_data]), density.flatten()
+        scale_gaussian,
+        xy_data,
+        d_data,
     )
-    var, amp = parameters[0], parameters[1]
-    return var, amp
+    return parameters
 
 
 def calculate_one_body_qubo_coeffs(
     density: NDArray, rescaled_pos: NDArray, variance: float, pos: NDArray
 ) -> Tuple[NDArray, float]:
+    r"""Calculates the one-body coefficients of the QUBO.
+
+    Args:
+        density: Density slices of the protein cavity as a 2-D array of density
+            values.
+        rescaled_pos: Array of rescaled register positions.
+        variance: Variance of the distribution fit to the density data.
+        pos: Array of register positions.
+
+    Returns:
+        Tuple of an array of one-body QUBO coefficients and their corresponding
+        scaling.
+    """
     gamma_list = dsu.gamma_list(density, rescaled_pos, variance)
     distances_density = dsu.find_possible_distances(rescaled_pos)
     distances_register = dsu.find_possible_distances(pos)
@@ -75,6 +105,20 @@ def scale_detunings(
     variance: float,
     max_det: float,
 ) -> NDArray:
+    r"""Calculates the detunings to be used for the QUBO.
+    Args:
+        density: Density slices of the protein cavity as a 2-D array of density
+            values.
+        pos: Array of register positions.
+        rescaled_pos: Array of rescaled register positions.
+        variance: Variance of the distribution fit to the density data.
+        brad: Blockade radius distance (in micrometers).
+        max_det: Maximum detuning allowed by the device.
+
+    Returns:
+        Tuple of an array of one-body QUBO coefficients and their corresponding
+        scaling.
+    """
     gamma_list, scale = calculate_one_body_qubo_coeffs(
         density, rescaled_pos, variance, pos
     )
@@ -100,7 +144,7 @@ def generate_pulse_sequences(
     pulse_duration: float,
     omega: float,
 ) -> Sequence:
-    """Executes a pulse sequence and returns resulting bitstrings"""
+    """Arranges detunings into a pulse sequence generated for a given device."""
     seq = Sequence(register, device)
     # add an adiabatic pulse for every qubit
     for i in range(len(dets)):
@@ -122,9 +166,26 @@ def run_qubo(
     proc: QPUBackend,
     variance: float,
     amplitude: float,
-    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float], float] = default_cost,
+    qubo_cost: Callable[
+        [NDArray, NDArray, float, str, float, float], float
+    ] = default_cost,
     num_samples: int = 1000,
 ) -> str:
+    r"""Obtain bitstring solving the QUBO problem for the input density slice.
+    Args:
+        density: Density slices of the protein cavity as a 2-D array of density
+            values.
+        executor: Function that executes a pulse sequence on a quantum backend.
+        proc: ``Processor`` object storing settings for running
+            on a quantum backend.
+
+        qubo_cost: Cost function to be optimized in the QUBO.
+        num_samples: Number of times to execute the quantum experiment or
+            simulation on the backend.
+
+    Returns:
+        Bitstring solving the QUBO for the input density slice.
+    """
     pos = proc.pos[0]
     rescaled_pos = proc.scale_grid_to_register()
     device = proc.device
@@ -152,14 +213,32 @@ def run_qubo(
 
 
 def best_solution_from_samples(
-    samples: int,
+    samples: str,
     rescaled_pos: NDArray,
     density: NDArray,
     brad: float,
     var: float,
     amp: float,
-    qubo_cost: Callable[[NDArray, NDArray, float, str, float, float], float] = default_cost,
+    qubo_cost: Callable[
+        [NDArray, NDArray, float, str, float, float], float
+    ] = default_cost,
 ) -> str:
+    r"""Identify sampled bitstring with lowest QUBO cost for the input density
+    slice.
+
+    Args:
+        samples: Bitstring samples obtained from executing the pulse sequence.
+        rescaled_pos: Array of rescaled register positions.
+        density: Density slices of the protein cavity as a 2-D array of density
+            values.
+        brad: Blockade radius distance (in micrometers).
+        var: Variance of the fitted density distribution.
+        amp: Amplitude of the fitted density distribution.
+        qubo_cost: Cost function to be optimized in the QUBO.
+
+    Returns:
+        Bitstring solving the QUBO for the input density slice.
+    """
     best_solutions = []
     samplings = []
     quantum_solutions = sorted(samples.items(), key=lambda x: x[1], reverse=True)

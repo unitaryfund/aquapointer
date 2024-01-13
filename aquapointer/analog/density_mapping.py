@@ -17,6 +17,7 @@ def visualize_registers(
     rescaled_positions: List[NDArray],
     densities: List[NDArray],
 ) -> None:
+    """Plot the register layout side-by-side with the density slice."""
     for k, density in enumerate(densities):
         print(f"Processing density {k+1} of {len(densities)}")
         print(f"Density {k+1} has {len(positions[k])} qubits")
@@ -30,6 +31,17 @@ def visualize_registers(
 def rescaled_positions_to_3d_map(
     best_solutions: List[str], rescaled_positions: List[NDArray]
 ) -> List[int]:
+    r"""Finds the locations of water molecules in a protein cavity from 2-D
+    arrays of density values of the cavity.
+
+    Args:
+        best_solutions: List of QUBO solution bitstrings.
+        rescaled_positions: List of arrays of rescaled register positions.
+
+    Returns:
+        List of 3-D coordinates of the locations of water molecules in the
+            protein cavity.
+    """
     qubit_indices = find_index_of_excited_qubits(best_solutions)
     qubit_rescaled_positions = find_positions_of_excited_qubits(
         qubit_indices, rescaled_positions
@@ -44,6 +56,9 @@ def rescaled_positions_to_3d_map(
 
 
 def find_index_of_excited_qubits(best_solutions: List[str]) -> List[int]:
+    r"""Finds the indices of excited qubits corresponding to each QUBO
+    solution.
+    """
     qubit_indices = []
     for bitstring in best_solutions:
         ls = []
@@ -57,6 +72,9 @@ def find_index_of_excited_qubits(best_solutions: List[str]) -> List[int]:
 def find_positions_of_excited_qubits(
     qubit_indices: List[int], rescaled_positions: List[NDArray]
 ) -> List[float]:
+    r"""Returns a list of coordinates of the excited qubits corresponding to
+    each QUBO solution.
+    """
     qubit_rescaled_positions = []
     for i, indices in enumerate(qubit_indices):
         ls = []
