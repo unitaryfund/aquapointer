@@ -6,6 +6,7 @@
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
 from aquapointer.digital.loaddata import LoadData
+from aquapointer.digital.qubo_utils import gaussian, gaussian_mixture, gamma, Vij
 
 class Qubo:
 
@@ -15,41 +16,6 @@ class Qubo:
         hamiltonians = [self.get_ising_hamiltonian(qubo=qubo) for qubo in self.qubo_matrices]
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
 
-    def _gaussian(self, var, m, x, y):
-        """
-        Returns the value at point (`x`,`y`) of a sum of isotropic normal
-        distributions centered at `mean[0]`, `mean[1]`, ...
-        and variance `var`
-        """
-        res = 0
-        return np.exp(-((x-m[0])**2 +(y-m[1])**2)/(2*var))/(2*np.pi*var)
-
-    def _gaussian_mixture(self, shape, var, means):
-        res = np.zeros(shape)
-        for i in range(len(res)):
-            for j in range(len(res[0])):
-                for mean in means:
-                    res[j,i] += self._gaussian(var, mean, i, j)
-        return res
-
-    def _gamma(self, density, m, var, amp=1):
-        Nm = amp*self._gaussian_mixture(density.shape, var, [m])
-        res = 0
-        for i in range(len(Nm[0])):
-            for j in range(len(Nm)):
-                res += 2*Nm[i,j]*density[i,j]
-                res -= Nm[i,j]*Nm[i,j]
-        return res
-
-    def _Vij(self, shape: tuple[int, int], mean1: tuple[float, float], mean2: tuple[float, float], var: float, amp: float) -> float:
-        Nm1 = amp*self._gaussian_mixture(shape, var, [mean1])
-        Nm2 = amp*self._gaussian_mixture(shape, var, [mean2])
-        res = 0
-        for i in range(len(Nm1[0])):
-            for j in range(len(Nm1)):
-                res += Nm1[i,j]*Nm2[i,j]
-        return res
-
     def get_qubo_matrices(self, densities: list[np.ndarray], rescaled_positions: list[np.ndarray]) -> list[np.ndarray]:
         variance = 50
         amplitude = 6
@@ -58,7 +24,7 @@ class Qubo:
         for k, density in enumerate(densities):
             rescaled_pos = rescaled_positions[k]
             # use function to calculate the one-body coefficients of the QUBO
-            gamma_list = [self._gamma(density, pos, variance) for pos in rescaled_pos]
+            gamma_list = [gamma(density, pos, variance) for pos in rescaled_pos]
             qubo = np.zeros((len(rescaled_pos), len(rescaled_pos)))
             
             for i in range(len(gamma_list)):
@@ -66,9 +32,7 @@ class Qubo:
 
             for i in range(len(rescaled_pos)):
                 for j in range(i+1, len(rescaled_pos)):
-                    #compute V_ij (the quadratic coefficients in the QUBO)
-                    #if i!=j:
-                    qubo[i][j] = self._Vij(shape=density.shape, 
+                    qubo[i][j] = Vij(shape=density.shape, 
                                     mean1=tuple(rescaled_pos[i]), 
                                     mean2=tuple(rescaled_pos[j]), 
                                     var=variance, 
@@ -135,10 +99,3 @@ class Qubo:
         hamiltionian = SparsePauliOp.from_list(sparse_list)
 
         return hamiltionian
-
-    def get_most_likely(self, msrmnts: dict) -> list[int]:
-        b = max(msrmnts, key=msrmnts.get)
-        bnot = [(int(x)+1)%2 for x in b]
-        
-        return bnot
-        
