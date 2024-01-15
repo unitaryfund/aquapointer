@@ -23,8 +23,8 @@ class VQE:
         else:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
 
-    def run(self, alpha: float, method="COBYLA"):
-        res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, options={'disp': False} )
+    def run(self, alpha: float, maxiter: int, method="COBYLA"):
+        res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
         return res
     
@@ -97,15 +97,14 @@ class VQE:
     
     def _compute_sharpe(self, probabilities: np.ndarray, values: np.ndarray) -> float:
         """
-        Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
+        Compute sharpe ratio for given probabilities, values.
 
         Parameters:
         - probabilities: List or array of probabilities
         - values: List or array of corresponding values
-        - confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
 
         Returns:
-        - CVaR
+        - sharpe ratio
         """
 
         weighted_values = probabilities * values
@@ -114,36 +113,35 @@ class VQE:
 
         sharpe_ratio = mean/std 
 
-        return -sharpe_ratio
+        return sharpe_ratio
 
     def sharpe_energy(self, params: np.ndarray) -> float:
-            """ 
-            Function that takes parameters to bind to the ansatz and confidence level
-            alpha, to compute the cvar energy (by sampling the ansatz and computing cvar).
-            
-            Attributes:
-            - params: list/array of probabilities
-            - alpha: confidence level
-            
-            Returns:
-            - CVaR energy
-            """
+        """ 
+        Function that takes parameters to bind to the ansatz and confidence level
+        alpha, to compute the sharpe energy (by sampling the ansatz and computing sharpe ratio).
+        
+        Attributes:
+        - params: list/array of probabilities
+          
+        Returns:
+        - sharpe energy
+        """
 
-            qc = self.ansatz.assign_parameters(params)
-            # Add measurements to our circuit
-            qc.measure_all()
-            # Sample ansatz
-            samp_dist = self.sampler.run(qc, shots=int(1e4)).result().quasi_dists[0]
+        qc = self.ansatz.assign_parameters(params)
+        # Add measurements to our circuit
+        qc.measure_all()
+        # Sample ansatz
+        samp_dist = self.sampler.run(qc, shots=int(1e4)).result().quasi_dists[0]
 
-            samp_dist_binary=samp_dist.binary_probabilities()
+        samp_dist_binary=samp_dist.binary_probabilities()
 
-            prob_energy = []
-            for key in samp_dist_binary.keys():
-                reverse_key = key[::-1] #qiskit reverses measured bitstrings
-                keynot = [(int(b)+1)%2 for b in reverse_key]
-                prob_energy.append([samp_dist_binary[key], ising_energy(keynot, self.qubo)])
+        prob_energy = []
+        for key in samp_dist_binary.keys():
+            reverse_key = key[::-1] #qiskit reverses measured bitstrings
+            keynot = [(int(b)+1)%2 for b in reverse_key]
+            prob_energy.append([samp_dist_binary[key], ising_energy(keynot, self.qubo)])
 
-            prob_energy = np.array(prob_energy)
-            sharpe_energy = self._compute_sharpe(prob_energy[:, 0], prob_energy[:, 1])
+        prob_energy = np.array(prob_energy)
+        sharpe_energy = self._compute_sharpe(prob_energy[:, 0], prob_energy[:, 1])
 
-            return sharpe_energy
+        return sharpe_energy

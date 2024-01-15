@@ -6,62 +6,9 @@
 import numpy as np
 import pickle
 from qiskit.quantum_info import SparsePauliOp
+from numba import njit
 
-# functions for importing the density slices
-def density_slices(d_list, basename, path):
-    # The 3D-RISM density slices are saved as pickled files in the folder MUP1.
-    # They are indexed by a number (see d_list) which represents the distance in Angstrom
-    # from the central slice.
-    densities = []
-    for d in d_list:
-        filename = path + f"d{d}" + basename
-        with open(filename, 'rb') as file_in:
-            densities.append(pickle.load(file_in))
-            
-    return densities
-
-def plane_points(d_list, basename, path):
-    # import slice coordinates (these are 3D coordinates in
-    # angstroms, they are needed at the very end to map
-    # excited qubits to positions in the protein cavity)
-    path = "../MUP1/MUP1_logfilter8_points/"
-    basename = "_plane_points_MUP1.p"
-    points = []
-    for d in d_list:
-        filename = path + f"d{d}" + basename
-        with open(filename, 'rb') as file_in:
-            points.append(pickle.load(file_in))
-    
-    return points
-
-def register_positions(d_list, basename, path):
-    # The register associated to each slide can be found in the folder nb/registers.
-    # Two types of files are saved there:
-    # - position_<#>.npy: the positions of the qubits in micrometers, as if they were in the QPU
-    # - rescaled_position_<#>.npy: the positions of the qubits on the same scale as the density slices
-
-    # import registers
-    path = "registers/"
-    basename = "position_"
-    positions = []
-    for i in range(len(d_list)):
-        with open(f'registers/position_{i}.npy', 'rb') as file_in:
-            pos = np.load(file_in)
-        positions.append(pos)
-    
-    return positions
-
-def rescaled_positions(d_list, basename, path):
-    basename = "rescaled_position_"
-    rescaled_positions = []
-    for i in range(len(d_list)):
-        with open(f'registers/rescaled_position_{i}.npy', 'rb') as file_in:
-            res_pos = np.load(file_in)
-        rescaled_positions.append(res_pos)
-    
-    return rescaled_positions
-
-
+@njit
 def gaussian(var, m, x, y):
     """
     Returns the value at point (`x`,`y`) of a sum of isotropic normal
@@ -71,6 +18,7 @@ def gaussian(var, m, x, y):
     res = 0
     return np.exp(-((x-m[0])**2 +(y-m[1])**2)/(2*var))/(2*np.pi*var)
 
+@njit
 def gaussian_mixture(shape, var, means):
     res = np.zeros(shape)
     for i in range(len(res)):
@@ -79,6 +27,7 @@ def gaussian_mixture(shape, var, means):
                 res[j,i] += gaussian(var, mean, i, j)
     return res
 
+@njit
 def gamma(density, m, var, amp=1):
     Nm = amp*gaussian_mixture(density.shape, var, [m])
     res = 0
@@ -88,6 +37,7 @@ def gamma(density, m, var, amp=1):
             res -= Nm[i,j]*Nm[i,j]
     return res
 
+@njit
 def Vij(shape: tuple[int, int], mean1: tuple[float, float], mean2: tuple[float, float], var: float, amp: float) -> float:
     Nm1 = amp*gaussian_mixture(shape, var, [mean1])
     Nm2 = amp*gaussian_mixture(shape, var, [mean2])
