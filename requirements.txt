@@ -8,3 +8,4 @@ qiskit_algorithms
 pulser
 numpy
 scipy
+gridData
