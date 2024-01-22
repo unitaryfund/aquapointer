@@ -13,11 +13,15 @@ from numpy.typing import NDArray
 def density_slices_by_plane(
     filename: str, slicing_planes: List[Tuple[NDArray, NDArray]]
 ) -> List[NDArray]:
-    density_3d_array = Grid(filename)
+    density_grid = Grid(filename)
+    density_3d_array = density_grid.grid
+    origin = density_grid.origin
     densities = [density_3d_array[x_slice, y_slice, z_slice]]
     for s in range(len(slicing_planes) - 1):
-        plane1 = construct_plane(slicing_planes[s][0], slicing_planes[s][1])
-        plane2 = construct_plane(slicing_planes[s + 1][0], slicing_planes[s + 1][1])
+        plane1 = construct_plane(slicing_planes[s][0] + origin, slicing_planes[s][1])
+        plane2 = construct_plane(
+            slicing_planes[s + 1][0] + origin, slicing_planes[s + 1][1]
+        )
         density = density_3d_array[x_slice, y_slice, z_slice]
         densities.append(density)
     density = density_3d_array[x_slice, y_slice, z_slice]
@@ -28,11 +32,13 @@ def density_slices_by_plane(
 def density_slices_by_axis(
     filename: str, axis: NDArray, steps: NDArray
 ) -> List[NDArray]:
-    slicing_planes = planes_along_axis(axis, steps)
+    slicing_planes = generate_planes_along_axis(axis, steps)
     return density_slices_by_plane(filename, slicing_planes)
 
 
-def planes_along_axis(axis: NDArray, steps: NDArray) -> List[Tuple[NDArray, NDArray]]:
+def generate_planes_along_axis(
+    axis: NDArray, steps: NDArray
+) -> List[Tuple[NDArray, NDArray]]:
     points = [np.array(axis * s) for s in steps]  # step from center along axis
     normals = [np.array(axis)] * len(points)
     return list(zip(points, normals))
@@ -44,5 +50,4 @@ def construct_plane(
     c = -point.dot(normal)
     x, y = np.meshgrid(range(20), range(20))
     z = (-normal[0] * x - normal[1] * y - c) / normal[2]
-
     return x, y, z
