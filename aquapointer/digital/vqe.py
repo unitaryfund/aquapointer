@@ -12,20 +12,34 @@ from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: Sampler, params: np.ndarray | None) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: Sampler, params: np.ndarray | None, alpha0: float | None = None) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
         self.ising_ham = ising_ham
         self.sampler = sampler
+        self.alpha0 = alpha0
 
-        if params!=None:
+        if params is not None:
             self.params = params
         else:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
 
+        if alpha0 is not None:
+            self.params = np.array([np.random.random()]*self.ansatz.num_parameters + [alpha0])
+
+
     def run(self, alpha: float, maxiter: int, method="COBYLA"):
         res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
+        return res
+
+    def run_cvar_w_alpha(self, maxiter: int, method="COBYLA"):
+        if self.alpha0 is None:
+            opt_params = np.concatenate((self.params, np.array([np.random.random()])))
+        else:
+            opt_params = self.params
+        res = minimize(self.cvar_energy_vary_alpha, opt_params, method=method, tol=1e-8, options={"maxiter": maxiter})
+        self.opt_params = res.x
         return res
     
     def run_sharpe(self, method="COBYLA"):
@@ -92,6 +106,38 @@ class VQE:
 
         prob_energy = np.array(prob_energy)
         cvar_energy = self._compute_cvar(prob_energy[:, 0], prob_energy[:, 1], alpha)
+
+        return cvar_energy
+    
+    def cvar_energy_vary_alpha(self, params: np.ndarray) -> float:
+        """ 
+        Function that takes parameters to bind to the ansatz and confidence level
+        alpha, to compute the cvar energy (by sampling the ansatz and computing cvar).
+        
+        Attributes:
+        - params: list/array of probabilities
+        - alpha: confidence level
+        
+        Returns:
+        - CVaR energy
+        """
+
+        qc = self.ansatz.assign_parameters(params[:-1])
+        # Add measurements to our circuit
+        qc.measure_all()
+        # Sample ansatz
+        samp_dist = self.sampler.run(qc, shots=int(1e4)).result().quasi_dists[0]
+
+        samp_dist_binary=samp_dist.binary_probabilities()
+
+        prob_energy = []
+        for key in samp_dist_binary.keys():
+            reverse_key = key[::-1] #qiskit reverses measured bitstrings
+            keynot = [(int(b)+1)%2 for b in reverse_key]
+            prob_energy.append([samp_dist_binary[key], ising_energy(keynot, self.qubo)])
+
+        prob_energy = np.array(prob_energy)
+        cvar_energy = self._compute_cvar(prob_energy[:, 0], prob_energy[:, 1], params[-1])
 
         return cvar_energy
     
