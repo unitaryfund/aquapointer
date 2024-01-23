@@ -30,7 +30,7 @@ class VQE:
         res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
         return res
-       
+           
     def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
         """
         Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
