@@ -1,5 +1,5 @@
 # aquapointer
-Package applying quantum algorithms to find locations of water molecules in a protein cavity
+Package applying quantum algorithms to find locations of water molecules in a protein cavity.
 
 ## Getting started
 You can use [this notebook](notebooks/aquapointer_demo.ipynb) to get started with aquapointer. 
@@ -9,3 +9,6 @@ From the top level of the repository, where the `setup.py` file is found, just r
 ```
 python setup.py install
 ```
+
+Work on aquapointer is supported by Wellcome Leap as part of the Quantum for Bio Program.
+
