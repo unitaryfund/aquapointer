@@ -12,27 +12,25 @@ from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: Sampler, params: np.ndarray | None) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: Sampler, params: np.ndarray) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
         self.ising_ham = ising_ham
         self.sampler = sampler
 
-        if params!=None:
+        if params.any():
             self.params = params
         else:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
+            
+
+        self.history = []
 
     def run(self, alpha: float, maxiter: int, method="COBYLA"):
         res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
         return res
-    
-    def run_sharpe(self, method="COBYLA"):
-        res = minimize(self.sharpe_energy, self.params, args=(), method=method, options={'disp': False} )
-        self.params = res.x
-        return res
-       
+           
     def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
         """
         Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
@@ -84,64 +82,34 @@ class VQE:
 
         samp_dist_binary=samp_dist.binary_probabilities()
 
-        prob_energy = []
+        correct_dist = {}
         for key in samp_dist_binary.keys():
-            reverse_key = key[::-1] #qiskit reverses measured bitstrings
+            reverse_key = key[::-1]
             keynot = [(int(b)+1)%2 for b in reverse_key]
-            prob_energy.append([samp_dist_binary[key], ising_energy(keynot, self.qubo)])
+            correct_dist[''.join(map(str, keynot))] = samp_dist_binary[key]
 
+        prob_energy = []
+        bitstrings = []
+        for key in correct_dist.keys():
+            key_np = np.fromiter(map(int, key), dtype=int)
+            prob_energy.append([correct_dist[key], ising_energy(key_np, self.qubo)])
+            bitstrings.append(key)
+
+        bitstrings = np.array(bitstrings)
+        prob_energy = np.array(prob_energy)
+
+        sorted_indices = np.argsort(prob_energy[:, 1])
+        sorted_keys = bitstrings[sorted_indices]
+        sorted_probs = prob_energy[:, 0][sorted_indices]
+        sorted_values = prob_energy[:, 1][sorted_indices]
+
+        opt_energy = sorted_values[0]
+        opt_b = sorted_keys[0]
+        opt_prob = sorted_probs[0]
         prob_energy = np.array(prob_energy)
         cvar_energy = self._compute_cvar(prob_energy[:, 0], prob_energy[:, 1], alpha)
 
+        # save intermediate optimal bitsting and energy to self.history
+        self.history.append([opt_b, opt_prob, opt_energy])
+
         return cvar_energy
-    
-    def _compute_sharpe(self, probabilities: np.ndarray, values: np.ndarray) -> float:
-        """
-        Compute sharpe ratio for given probabilities, values.
-
-        Parameters:
-        - probabilities: List or array of probabilities
-        - values: List or array of corresponding values
-
-        Returns:
-        - sharpe ratio
-        """
-
-        weighted_values = probabilities * values
-        mean = np.sum(weighted_values)
-        std = np.std(weighted_values)
-
-        sharpe_ratio = mean/std 
-
-        return sharpe_ratio
-
-    def sharpe_energy(self, params: np.ndarray) -> float:
-        """ 
-        Function that takes parameters to bind to the ansatz and confidence level
-        alpha, to compute the sharpe energy (by sampling the ansatz and computing sharpe ratio).
-        
-        Attributes:
-        - params: list/array of probabilities
-          
-        Returns:
-        - sharpe energy
-        """
-
-        qc = self.ansatz.assign_parameters(params)
-        # Add measurements to our circuit
-        qc.measure_all()
-        # Sample ansatz
-        samp_dist = self.sampler.run(qc, shots=int(1e4)).result().quasi_dists[0]
-
-        samp_dist_binary=samp_dist.binary_probabilities()
-
-        prob_energy = []
-        for key in samp_dist_binary.keys():
-            reverse_key = key[::-1] #qiskit reverses measured bitstrings
-            keynot = [(int(b)+1)%2 for b in reverse_key]
-            prob_energy.append([samp_dist_binary[key], ising_energy(keynot, self.qubo)])
-
-        prob_energy = np.array(prob_energy)
-        sharpe_energy = self._compute_sharpe(prob_energy[:, 0], prob_energy[:, 1])
-
-        return sharpe_energy
