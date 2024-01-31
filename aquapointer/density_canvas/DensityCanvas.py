@@ -7,8 +7,8 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import numbers
 import math
-import embedding as emb
 import Lp_norm as lpn
+import embedding as emb
 from itertools import combinations
 
 class DensityCanvas:
