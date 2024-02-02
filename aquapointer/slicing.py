@@ -26,9 +26,9 @@ def density_slices_by_axis(
 def density_slices_by_plane(
     density_grid: Grid, slicing_planes: List[Tuple[NDArray, NDArray]]
 ) -> Tuple[List[NDArray]]:
-    idx = [[] for _ in range(len(slicing_planes))]
-    coordinates = [[] for _ in range(len(slicing_planes))]
-    densities = [[] for _ in range(len(slicing_planes))]
+    idx = [[] for _ in range(len(slicing_planes) + 1)]
+    coordinates = [[] for _ in range(len(slicing_planes) + 1)]
+    densities = [[] for _ in range(len(slicing_planes) + 1)]
 
     for ind in np.ndindex(density_grid.grid.shape):
         density = density_grid.grid[ind]
