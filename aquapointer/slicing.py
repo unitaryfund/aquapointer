@@ -17,9 +17,9 @@ def density_file_to_grid(filename: str) -> Grid:
 
 
 def density_slices_by_axis(
-    density_grid: Grid, axis: NDArray, steps: NDArray
+    density_grid: Grid, axis: NDArray, distances: NDArray
 ) -> Tuple[List[NDArray]]:
-    slicing_planes = generate_planes_by_axis(axis, steps, density_grid.origin)
+    slicing_planes = generate_planes_by_axis(axis, distances, density_grid.origin)
     return density_slices_by_plane(density_grid, slicing_planes)
 
 
@@ -59,11 +59,11 @@ def density_slices_by_plane(
 
             else:
                 # slice with one plane, in direction of the normal
-                normal = slicing_planes[s - 1][1] / norm(slicing_planes[s - 1][1])
-                d = (center - slicing_planes[s - 1][0]).dot(normal)
+                normal = slicing_planes[-1][1] / norm(slicing_planes[-1][1])
+                d = (center - slicing_planes[-1][0]).dot(normal)
                 if d >= 0:
                     idx[s].append(ind)
-                    coordinates[s].append(center - d * slicing_planes[s - 1][1])
+                    coordinates[s].append(center - d * normal)
                     densities[s].append(density)
 
     return coordinates, densities
