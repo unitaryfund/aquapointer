@@ -39,7 +39,7 @@ def density_slices_by_plane(
                 # slice is in opposite direction of the normal
                 normal = slicing_planes[s][1] / norm(slicing_planes[s][1])
                 d = (center - slicing_planes[s][0]).dot(normal)
-                if d >= 0:
+                if d < 0:
                     idx[s].append(ind)
                     coordinates[s].append(center - d * normal)
                     densities[s].append(density)
@@ -52,21 +52,19 @@ def density_slices_by_plane(
                 normal2 = slicing_planes[s][1] / norm(slicing_planes[s][1])
                 d2 = (center - slicing_planes[s][0]).dot(normal2)
 
-                if d1 < 0 and d2 >= 0:
+                if d1 > 0 and d2 <= 0:
                     idx[s].append(ind)
                     coordinates[s].append(center - (d1 * normal1 + d2 * normal2) / 2)
                     densities[s].append(density)
-                    break
 
             else:
                 # slice with one plane, in direction of the normal
                 normal = slicing_planes[s - 1][1] / norm(slicing_planes[s - 1][1])
                 d = (center - slicing_planes[s - 1][0]).dot(normal)
-                if d < 0:
+                if d >= 0:
                     idx[s].append(ind)
                     coordinates[s].append(center - d * slicing_planes[s - 1][1])
                     densities[s].append(density)
-                    break
 
     return coordinates, densities
 
@@ -76,7 +74,7 @@ def generate_planes_by_axis(
     distances: NDArray,
     ref_point: NDArray,
 ) -> List[Tuple[NDArray, NDArray]]:
-    return [(ref_point + axis * d, np.array(axis)) for d in distances]
+    return [(ref_point + axis * d, axis) for d in distances]
 
 
 def find_density_origin(density_grid: Grid) -> NDArray:
