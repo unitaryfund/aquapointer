@@ -40,9 +40,7 @@ def density_slices_by_plane(
                 normal = slicing_planes[s][1] / norm(slicing_planes[s][1])
                 d = (center - slicing_planes[s][0]).dot(normal)
                 if d < 0:
-                    idx[s].append(ind)
-                    coordinates[s].append(center - d * normal)
-                    densities[s].append(density)
+                    coords = center - d * normal / 2
                     break
 
             elif s < len(slicing_planes):
@@ -53,18 +51,19 @@ def density_slices_by_plane(
                 d2 = (center - slicing_planes[s][0]).dot(normal2)
 
                 if d1 > 0 and d2 <= 0:
-                    idx[s].append(ind)
-                    coordinates[s].append(center - (d1 * normal1 + d2 * normal2) / 2)
-                    densities[s].append(density)
+                    coords = center - (d1 * normal1 + d2 * normal2) / 2
+                    break
 
             else:
                 # slice with one plane, in direction of the normal
                 normal = slicing_planes[-1][1] / norm(slicing_planes[-1][1])
                 d = (center - slicing_planes[-1][0]).dot(normal)
                 if d >= 0:
-                    idx[s].append(ind)
-                    coordinates[s].append(center - d * normal)
-                    densities[s].append(density)
+                    coords = center - d * normal / 2
+
+        idx[s].append(ind)
+        coordinates[s].append(coords)
+        densities[s].append(density)
 
     return coordinates, densities
 
