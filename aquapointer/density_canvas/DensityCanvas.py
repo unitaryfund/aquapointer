@@ -10,6 +10,7 @@ import math
 import Lp_norm as lpn
 import embedding as emb
 from itertools import combinations
+from Lattice import Lattice
 
 class DensityCanvas:
     """ This is a class that contains information on 2D slice-space.
@@ -150,7 +151,7 @@ class DensityCanvas:
     
     def __float__(self) -> numbers.Number:
         return float(self.integrate())
-        
+
     def integrate(self) -> numbers.Number:
         if self._empty:
             return 0
@@ -171,12 +172,16 @@ class DensityCanvas:
         if slice.shape != self._density.shape:
             raise ValueError(f"The slice must have shape {self._density.shape}")
         self.clear_density()
+        self.clear_pubo()
+        self.clear_linear()
         self._density = slice
         self._empty = False
         self._density_type = "data"
     
     def set_density_from_gaussians(self, centers: ArrayLike, amplitude: numbers.Number, variance: numbers.Number):
         self.clear_density()
+        self.clear_pubo()
+        self.clear_linear()
         rvs = []
         for mu in centers:
             rvs.append(multivariate_normal(mu, variance))
@@ -187,48 +192,24 @@ class DensityCanvas:
         self._variance = variance
         self._amplitude = amplitude
         self._density_type = "gaussians"
+
+    def set_lattice(self, lattice: Lattice):
+        self.clear_lattice()
+        self.clear_pubo()
+        self.clear_linear()
+        if self._length_x < lattice._length_x:
+            raise ValueError("The lattice does not fit in the canvans along the x direction")
+        if self._length_y < lattice._length_y:
+            raise ValueError("The lattice does not fit in the canvans along the y direction")
+        self._lattice = lattice
     
     def clear_lattice(self):
         try:
             del self._lattice
-            del self._min_spacing
-            del self._lattice_type
         except AttributeError:
             pass
         
-    def define_custom_lattice(self, pos: ArrayLike):
-        self._lattice = np.array(pos)
-        self._min_spacing = emb.find_minimal_distance(pos)
-        self._lattice_type = "custom"
-
-    def define_rectangular_lattice(self, xnum: int, ynum: int, spacing: numbers.Number, center: ArrayLike = None):
-        if not center:
-            center = (
-                self._length_x/2 + self._origin[0], 
-                self._length_y/2 + self._origin[1], 
-            )
-        
-        xlength = (xnum-1)*spacing
-        ylength = (ynum-1)*spacing
-
-        x_coords = []
-        for i in range(xnum):
-            x_coords.append(center[0] - (xlength/2) + i*spacing)
-        
-        y_coords = []
-        for i in range(ynum):
-            y_coords.append(center[1] - (ylength/2) + i*spacing)
-
-        coords = []
-        for xc in x_coords:
-            for yc in y_coords:
-                coords.append([xc, yc])
-        
-        self._lattice = np.array(coords)
-        self._min_spacing = spacing
-        self._lattice_type = "rectangular"
-
-    def calculate_ubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None):
+    def calculate_pubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None):
         """ Calcuates the coefficients of the cost function.
         The coefficients are stored in a dictionary {1:{}, 2:{}, ..., p:{}} where the key
         represents the interaction order and the values are dictionaries.
@@ -244,8 +225,7 @@ class DensityCanvas:
         try:
             lattice = self._lattice
         except AttributeError:
-            print("Lattice needs to be defined beforehand")
-            return
+            raise AttributeError("Lattice needs to be defined in order to calculate pubo coefficients")
         
         if high is None:
             high = p
@@ -270,12 +250,12 @@ class DensityCanvas:
                 npoints_x=self._npoints_x,
                 npoints_y=self._npoints_y
             )
-            stg.set_density_from_gaussians([lattice[i]], *pms)
+            stg.set_density_from_gaussians([lattice._coords[i]], *pms)
             return stg
 
         # calculate using formula
-        self._ubo = {
-            "coeffs": lpn.Lp_coefficients(len(lattice), p, _base, _component, params, high, low),
+        self._pubo = {
+            "coeffs": lpn.Lp_coefficients(len(lattice._coords), p, _base, _component, params, high, low),
             "p": p,
             "params": params,
             "high": high,
@@ -288,13 +268,13 @@ class DensityCanvas:
         Otherwise use formula and return coefficient list
         """
 
-        # try to fetch linear coefficients from existing ubo
+        # try to fetch linear coefficients from existing pubo
         try:
-            coeffs = self._ubo["coeffs"]
+            coeffs = self._pubo["coeffs"]
             self._linear = {
                 "gammas": list(coeffs[1].values()),
-                "p": self._ubo["p"],
-                "params": self._ubo["params"]
+                "p": self._pubo["p"],
+                "params": self._pubo["params"]
             }
             return
         except AttributeError:
@@ -306,8 +286,7 @@ class DensityCanvas:
         try:
             lattice = self._lattice
         except AttributeError:
-            print("Lattice needs to be defined beforehand")
-            return
+            raise AttributeError("Lattice needs to be defined in order to calculate linear coefficients")
         
         # define base and component functions
         def _base() -> Self:
@@ -320,19 +299,19 @@ class DensityCanvas:
                 npoints_x=self._npoints_x,
                 npoints_y=self._npoints_y
             )
-            stg.set_density_from_gaussians([lattice[i]], *pms)
+            stg.set_density_from_gaussians([lattice._coords[i]], *pms)
             return stg
 
         # calculate using formula
         self._linear = {
-            "gammas": lpn.Lp_coefficients_first_order(len(lattice), p, _base, _component, params),
+            "gammas": lpn.Lp_coefficients_first_order(len(lattice._coords), p, _base, _component, params),
             "p": p,
             "params": params,
         }
     
-    def clear_ubo(self):
+    def clear_pubo(self):
         try:
-            del self._ubo
+            del self._pubo
         except AttributeError:
             pass
     
@@ -341,25 +320,42 @@ class DensityCanvas:
             del self._linear
         except AttributeError:
             pass
+
+    def decimate_lattice(self, p: int, params: ArrayLike):
+        # check that lattice exists
+        try:
+            lattice = self._lattice
+        except AttributeError:
+            raise AttributeError("Lattice needs to be defined in order to decimate it")
+
+        try:
+            linear = self._linear
+        except AttributeError:
+            self.calculate_linear_coefficients(p, params)
+            linear = self._linear
+        
+        new_coords = [c for i,c in enumerate(lattice._coords) if linear["gammas"][i] < 0]
+        self.clear_lattice()
+        new_lattice = Lattice(np.array(new_coords))
+        self._lattice = new_lattice
     
     def calculate_bitstring_cost_from_coefficients(self, bitstring: Union[str, ArrayLike], high=None, low=None) -> numbers.Number:
         try: 
-            coeffs = self._ubo["coeffs"]
+            coeffs = self._pubo["coeffs"]
         except AttributeError:
-            print("Coefficients need to be computed beforehand")
-            return
+            raise AttributeError("Pubo coefficients need to be computed in order to calculate cost")
         
         # set high and low
         if high is None:
-            high = self._ubo["high"]
+            high = self._pubo["high"]
         if low is None:
-            low = self._ubo["low"]
-        if high > self._ubo["high"]:
-            print(f"Warning: calculating up to maximum degree {self._ubo['high']}")
-            high = self._ubo["high"]
-        if low < self._ubo["low"]:
-            print(f"Warning: calculating up to minimum degree {self._ubo['low']}")
-            low = self._ubo["low"]
+            low = self._pubo["low"]
+        if high > self._pubo["high"]:
+            print(f"Warning: calculating up to maximum degree {self._pubo['high']}")
+            high = self._pubo["high"]
+        if low < self._pubo["low"]:
+            print(f"Warning: calculating up to minimum degree {self._pubo['low']}")
+            low = self._pubo["low"]
         
         # separate bitstring in list of binaries
         bits = np.array([int(b) for b in bitstring])
@@ -373,21 +369,20 @@ class DensityCanvas:
                 cost += coeffs[i][idx]
         return cost
     
-    def calculate_bitstring_cost_from_norm(self, bitstring: Union[str, ArrayLike], mixture_params: ArrayLike, norm: Callable, norm_params: ArrayLike) -> numbers.Number:
+    def calculate_bitstring_cost_from_distance(self, bitstring: Union[str, ArrayLike], mixture_params: ArrayLike, distance: Callable, **kwargs) -> numbers.Number:
         try:
             lattice = self._lattice
         except AttributeError:
-            print("Lattice needs to be defined beforehand")
-            return
+            raise AttributeError("Lattice needs to be defined in order to calculate cost")
         
         # separate bitstring in list of binaries
         bits = np.array([int(b) for b in bitstring])
         
         # calculate cost
-        candidate_centers = [lattice[i] for i in range(len(lattice)) if bits[i]==1]
+        candidate_centers = [lattice._coords[i] for i in range(len(lattice._coords)) if bits[i]==1]
         test = DensityCanvas(self._origin, self._length_x, self._length_y, self._npoints_x, self._npoints_y)
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
-        return norm(self-test, *norm_params) - norm(self, *norm_params)
+        return distance(self, test, **kwargs)
             
     def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False):
         fig, ax = plt.subplots(figsize=figsize)
@@ -395,7 +390,7 @@ class DensityCanvas:
         c = ax.pcolormesh(self._X, self._Y, self._density, cmap='viridis')
         if draw_lattice:
             try:
-                ax.scatter(self._lattice[:,0], self._lattice[:,1], color='blue')
+                ax.scatter(self._lattice._coords[:,0], self._lattice._coords[:,1], color='blue')
             except AttributeError:
                 print("Lattice has not been defined")
                 return
