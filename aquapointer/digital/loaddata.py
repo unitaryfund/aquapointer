@@ -22,10 +22,17 @@ class LoadData:
         self.register_positions = self.load_register_positions(path=BASE_PATH + REG_DIR)
         self.rescaled_register_positions = self.load_rescaled_register_positions(path=BASE_PATH + REG_DIR)
 
-    def load_density_slices(self,path: str) -> list[np.ndarray]:
-        # The 3D-RISM density slices are saved as pickled files in the folder MUP1.
-        # They are indexed by a number (see d_list) which represents the distance in Angstrom
-        # from the central slice.
+    def load_density_slices(self, path: str) -> list[np.ndarray]:
+        r"""The 3D-RISM density slices are saved as pickled files in the folder MUP1.
+        They are indexed by a number (see d_list) which represents the distance in Angstrom
+        from the central slice. This function loads the files.
+
+        Args:
+            path: Path to 3D-RISM density slices files.
+
+        Returns:
+            List of numpy arrays containing the slices.
+        """
         basename = "_density_slice_MUP1_logfilter8.p"
         densities = []
         for d in self.d_list:
@@ -36,9 +43,16 @@ class LoadData:
         return densities
 
     def load_plane_points(self, path: str) -> list[np.ndarray]:
-        # import slice coordinates (these are 3D coordinates in
-        # angstroms, they are needed at the very end to map
-        # excited qubits to positions in the protein cavity)
+        r"""Load slice coordinates (these are 3D coordinates in
+        angstroms, they are needed at the very end to map
+        excited qubits to positions in the protein cavity).
+
+        Args:
+            path: Path to plane points files.
+        
+        Returns:
+            List of numpy arrays containing the plane points.
+        """
         basename = "_plane_points_MUP1.p"
         points = []
         for d in self.d_list:
@@ -49,12 +63,16 @@ class LoadData:
         return points
 
     def load_register_positions(self, path: str) -> list[np.ndarray]:
-        # The register associated to each slide can be found in the folder nb/registers.
-        # Two types of files are saved there:
-        # - position_<#>.npy: the positions of the qubits in micrometers, as if they were in the QPU
-        # - rescaled_position_<#>.npy: the positions of the qubits on the same scale as the density slices
+        r"""The register associated to each slice can be found in the folder nb/registers.
+        - position_<#>.npy: the positions of the qubits in micrometers, as if they were in the QPU
 
-        # import registers
+        Args:
+            path: Path to register positions files.
+
+        Returns:
+            List of numpy arrays containing the register positions.
+        """
+
         basename = "position_"
         positions = []
         for i in range(len(self.d_list)):
@@ -66,6 +84,15 @@ class LoadData:
         return positions
 
     def load_rescaled_register_positions(self, path: str) -> list[np.ndarray]:
+        r"""The register associated to each slice can be found in the folder nb/registers.
+        - rescaled_position_<#>.npy: the positions of the qubits on the same scale as the density slices
+
+        Args:
+            path: Path to register positions files.
+
+        Returns:
+            List of numpy arrays containing the rescaled register positions.
+        """
         basename = "rescaled_position_"
         rescaled_positions = []
         for i in range(len(self.d_list)):
