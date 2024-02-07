@@ -87,8 +87,8 @@ def density_slices_by_plane(
             (int(di / delta[0]), int(dist[d + 1] / delta[0]))
             for d, di in enumerate(dist[:-1])
         ]
-        points = [array_points[i[0] : i[1], :, :] for i in incr] + [
-            array_points[incr[-1][1] :, :, :]
+        points = [np.mean(array_points[i[0] : i[1], :, :], axis=0) for i in incr] + [
+            np.mean(array_points[incr[-1][1] :, :, :], axis=0)
         ]
         densities = [np.mean(density_3d[i[0] : i[1], :, :], axis=0) for i in incr] + [
             np.mean(density_3d[incr[-1][1] :, :, :], axis=0)
@@ -99,8 +99,8 @@ def density_slices_by_plane(
             (int(di / delta[1]), int(dist[d + 1] / delta[1]))
             for d, di in enumerate(dist[:-1])
         ]
-        points = [array_points[:, i[0] : i[1], :] for i in incr] + [
-            array_points[:, incr[-1][1] :, :]
+        points = [np.mean(array_points[:, i[0] : i[1], :], axis=1) for i in incr] + [
+            np.mean(array_points[:, incr[-1][1] :, :], axis=1)
         ]
         densities = [
             np.mean(density_grid.grid[:, i[0] : i[1], :], axis=1) for i in incr
@@ -111,8 +111,8 @@ def density_slices_by_plane(
             (int(di / delta[2]), int(dist[d + 1] / delta[2]))
             for d, di in enumerate(dist[:-1])
         ]
-        points = [array_points[:, :, i[0] : i[1]] for i in incr] + [
-            array_points[:, :, incr[-1][1] :]
+        points = [np.mean(array_points[:, :, i[0] : i[1]], axis=2) for i in incr] + [
+            np.mean(array_points[:, :, incr[-1][1] :], axis=2)
         ]
         densities = [
             np.mean(density_grid.grid[:, :, i[0] : i[1]], axis=2) for i in incr
