@@ -1,7 +1,7 @@
 [![PyPI version](https://badge.fury.io/py/aquapointer.svg)](https://badge.fury.io/py/aquapointer)
 [![Downloads](https://static.pepy.tech/personalized-badge/aquapointer?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads)](https://pepy.tech/project/aquapointer)
 [![Repository](https://img.shields.io/badge/GitHub-5C5C5C.svg?logo=github)](https://github.com/unitaryfund/aquapointer)
-[![Unitary Fund](https://img.shields.io/badge/Supported%20By-Wellcome%20Leap-FF2C4C.svg)](https://unitary.fund)
+[![Wellcome Leap](https://img.shields.io/badge/Supported%20By-Wellcome%20Leap-FF2C4C.svg)](https://wellcomeleap.org)
 [![Discord Chat](https://img.shields.io/badge/dynamic/json?color=blue&label=Discord&query=approximate_presence_count&suffix=%20online.&url=https%3A%2F%2Fdiscord.com%2Fapi%2Finvites%2FJqVGmpkP96%3Fwith_counts%3Dtrue)](http://discord.unitary.fund)
 
 
