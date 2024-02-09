@@ -193,15 +193,20 @@ class DensityCanvas:
         self._amplitude = amplitude
         self._density_type = "gaussians"
 
-    def set_lattice(self, lattice: Lattice):
+    def set_lattice(self, lattice: Lattice, centering=True):
         self.clear_lattice()
         self.clear_pubo()
         self.clear_linear()
+        if centering:
+            shift = np.array((self._length_x/2+self._origin[0], self._length_y/2+self._origin[1]))-lattice._center
+        else:
+            shift = 0
         if self._length_x < lattice._length_x:
             raise ValueError("The lattice does not fit in the canvans along the x direction")
         if self._length_y < lattice._length_y:
             raise ValueError("The lattice does not fit in the canvans along the y direction")
         self._lattice = lattice
+        self._lattice._coords += shift
     
     def clear_lattice(self):
         try:
