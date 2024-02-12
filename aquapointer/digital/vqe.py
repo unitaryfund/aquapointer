@@ -43,7 +43,7 @@ class VQE:
     def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
         r""" Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
 
-        Parameters:
+        Args:
             probabilities: List or array of probabilities
             values: List or array of corresponding values
             confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
