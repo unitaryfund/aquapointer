@@ -22,26 +22,34 @@ class VQE:
             self.params = params
         else:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
-            
 
         self.history = []
 
     def run(self, alpha: float, maxiter: int, method="COBYLA"):
+        r""" Runs the minization.
+
+        Args:
+            alpha: Confidence level.
+            maxiter: Maximum number of iterations.
+            method: Method for updating parameters.
+        
+        Returns:
+            Result from running scipy.optimize.minimize.
+        """
         res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
         return res
            
     def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
-        """
-        Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
+        r""" Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
 
-        Parameters:
-        - probabilities: List or array of probabilities
-        - values: List or array of corresponding values
-        - confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
+        Args:
+            probabilities: List or array of probabilities
+            values: List or array of corresponding values
+            confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
 
         Returns:
-        - CVaR
+            CVaR
         """
 
         # Sort values in ascending order
@@ -62,16 +70,15 @@ class VQE:
         return cvar
     
     def cvar_energy(self, params: np.ndarray, alpha: float) -> float:
-        """ 
-        Function that takes parameters to bind to the ansatz and confidence level
+        r""" Function that takes parameters to bind to the ansatz and confidence level
         alpha, to compute the cvar energy (by sampling the ansatz and computing cvar).
         
-        Attributes:
-        - params: list/array of probabilities
-        - alpha: confidence level
+        Args:
+            params: numpy array of parameters for the ansatz.
+            alpha: Confidence level.
         
         Returns:
-        - CVaR energy
+            CVaR energy.
         """
 
         qc = self.ansatz.assign_parameters(params)

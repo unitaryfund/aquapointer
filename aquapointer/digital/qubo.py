@@ -17,6 +17,17 @@ class Qubo:
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
 
     def get_qubo_matrices(self, densities: list[np.ndarray], rescaled_positions: list[np.ndarray]) -> list[np.ndarray]:
+        r""" Given the density slices and rescaled positions of the registers,
+        one can compute the corresponding QUBO matrices.
+
+        Args:
+            densities: List of numpy arrays containing the 3D-RISM slices.
+            rescaled_positions: List of numpy arrays containing the rescaled positions of the register.
+        
+        Returns:
+            List of numpy arrays containing the QUBO matrices for each slice.        
+        
+        """        
         variance = 50
         amplitude = 6
         qubo_matrices = []
@@ -42,17 +53,35 @@ class Qubo:
         
         return qubo_matrices
 
-    #Ising energy function (objective function to minimize)
     def ising_energy(self, assignment: np.ndarray, qubo: np.ndarray) -> float:
+        r""" Given a binary string x and a QUBO matrix Q, computes the inner product <x, Qx>.
+
+        Args:   
+            assignment: numpy array, 0,1-valued.
+            qubo: 2d numpy array.
+
+        Returns:
+            Float given by computing the inner product <x, Qx>.
+        
+        
+        """ 
         return np.transpose(assignment) @ qubo @ assignment
 
-    #for the classical brutef-force approach
     def _bitfield(self, n: int, L: int) -> list[int]:
         result = np.binary_repr(n, L)
         return [int(digit) for digit in result]
 
-    #find for a given qubo matrix the optimal bitstring that minimizes energy by going over all possible bitstrings.
     def find_optimum(self, qubo: np.ndarray) -> tuple[str, float]:
+        r""" Brute-force approach to solving the QUBO problem: finding the optimal
+        bitstring x that minimizes <x, Qx> where Q is the QUBO matrix.
+
+        Args:
+            qubo: 2d numpy array.
+        
+        Returns:
+            Tuple of a bitstring and minimal energy (such that <x, Qx> is minimized).   
+        
+        """ 
         shape = qubo.shape
         L = shape[0]
 
@@ -69,6 +98,18 @@ class Qubo:
         return sol, min_energy
 
     def _sparse_sigmaz_string(self, length: int, pos: list[int]) -> str:
+        r""" Given a list positions and integer length, returns a string of the
+        given length consisting of a Z at positions from the list of positions
+        and I otherwise. This is interpreted as a sparse Pauli operator.
+
+        Args:
+            length: Integer indicating the length of the string.
+            pos: List of integers for the positions of Z.
+
+        Returns:
+            String consisting of I's and Z's.  
+                
+        """ 
         sparse_sigmaz_str = ""
         for i in range(length):
             if i in pos:
@@ -78,6 +119,16 @@ class Qubo:
         return sparse_sigmaz_str
 
     def get_ising_hamiltonian(self, qubo: np.ndarray) -> SparsePauliOp:
+        r""" Given a QUBO matrix, one can associate with it a sparse Pauli operator.
+        This is done by mapping a binary variable x -> z := (1-x)/2.
+
+        Args:
+            qubo: 2d numpy array.
+        
+        Returns:
+            SparsePauliOp corresponding to the QUBO matrix.       
+        
+        """ 
         #the constant term (coefficient in front of II...I)
         coeff_id = 0.5*np.sum([qubo[i][i] for i in range(len(qubo))])+0.5*np.sum([np.sum([qubo[i][j] for j in range(i+1,len(qubo))]) for i in range(len(qubo))])
 
