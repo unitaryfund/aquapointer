@@ -20,23 +20,23 @@ class Lattice:
         coords: ArrayLike,
         **kwargs
     ):
-        self._coords = np.array(coords)
+        self._coords = np.array(coords, dtype=float)
         try:
             self._min_spacing = kwargs['min_distance']
         except KeyError:
-            self._min_spacing = emb.find_minimal_distance(coords)
+            self._min_spacing = emb.find_minimal_distance(self._coords)
         try:
             self._center = kwargs['center']
         except KeyError:
-            self._center = np.mean(coords, axis=0)
+            self._center = np.mean(self._coords, axis=0)
         try:
             self._length_x = kwargs['length_x']
         except KeyError:
-            self._length_x = emb.find_maximal_distance(coords[:,0])
+            self._length_x = emb.find_maximal_distance(self._coords[:,0])
         try:
             self._length_y = kwargs['length_y']
         except KeyError:
-            self._length_y = emb.find_maximal_distance(coords[:,1])
+            self._length_y = emb.find_maximal_distance(self._coords[:,1])
         try:
             self._lattice_type = kwargs['lattice_type']
         except KeyError:

@@ -332,14 +332,13 @@ class DensityCanvas:
             lattice = self._lattice
         except AttributeError:
             raise AttributeError("Lattice needs to be defined in order to decimate it")
-
-        try:
-            linear = self._linear
-        except AttributeError:
-            self.calculate_linear_coefficients(p, params)
-            linear = self._linear
         
-        new_coords = [c for i,c in enumerate(lattice._coords) if linear["gammas"][i] < 0]
+        self.clear_pubo()
+        self.clear_linear()
+
+        self.calculate_linear_coefficients(p, params)
+        
+        new_coords = [c for i,c in enumerate(lattice._coords) if self._linear["gammas"][i] < 0]
         self.clear_lattice()
         new_lattice = Lattice(np.array(new_coords))
         self._lattice = new_lattice
