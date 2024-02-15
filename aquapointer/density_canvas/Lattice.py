@@ -7,8 +7,8 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import numbers
 import math
-import Lp_norm as lpn
-import embedding as emb
+import aquapointer.density_canvas.Lp_norm as lpn
+import aquapointer.density_canvas.embedding as emb
 from itertools import combinations
 from scipy.stats import qmc
 

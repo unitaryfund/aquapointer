@@ -7,10 +7,10 @@ from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import numbers
 import math
-import Lp_norm as lpn
-import embedding as emb
+import aquapointer.density_canvas.Lp_norm as lpn
+import aquapointer.density_canvas.embedding as emb
 from itertools import combinations
-from Lattice import Lattice
+from aquapointer.density_canvas.Lattice import Lattice
 
 class DensityCanvas:
     """ This is a class that contains information on 2D slice-space.
