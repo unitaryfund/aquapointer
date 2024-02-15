@@ -63,12 +63,13 @@ class Lattice:
         return cls(np.array(coords, dtype=float), min_spacing=spacing, length_x=length_x, length_y=length_y, type="rectangular")
 
     @classmethod
-    def poisson_disk(cls, density, spacing, length, max_num):
+    def poisson_disk(cls, density: ArrayLike, origin: ArrayLike, length: tuple, spacing: tuple, max_num: int):
         """
         Poisson disk sampling with variable radius.
         density: 2d array representing probability density
-        spacing: tuple (min_radius, max_radius) representing the minimum and maximum exclusion radius
+        origin: coordinates of the bottom left point
         length: tuple (length_x, length_y) representing the physical size of the 2d space
+        spacing: tuple (min_radius, max_radius) representing the minimum and maximum exclusion radius
         max_num: maximum number of points to sample
         """
         
@@ -77,8 +78,8 @@ class Lattice:
         scale_x, scale_y = np.array(length)/np.array(density.shape)
 
         def _index_from_position(pos):
-            idx_x = int(pos[0]/scale_x)
-            idx_y = int(pos[1]/scale_y)
+            idx_x = int((pos[1]-origin[1])/scale_x)
+            idx_y = int((pos[0]-origin[0])/scale_y)
             return (idx_x, idx_y)
         
         # convert probability density map to a radius map
@@ -93,8 +94,8 @@ class Lattice:
         probs = []
         num = 0
 
-        # pick the first point randomly and initialize queue
-        first_point = np.array((np.random.rand()*length_x, np.random.rand()*length_y))
+        # pick the first point as the density maximum and initialize queue
+        first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y]) + origin
         coords.append(first_point)
         queue.append(num)
         probs.append(density[_index_from_position(first_point)])
@@ -102,7 +103,7 @@ class Lattice:
 
         # sample until max number is reached or points cannot be placed
         while len(queue) and (num<=max_num):
-            i = np.random.choice(queue, p=np.array(probs)/np.sum(probs))
+            i = np.random.choice(queue)#, p=np.array(probs)/np.sum(probs))
             ref_point = coords[i]
             ref_radius = radius_density[_index_from_position(ref_point)]
             placed = False
@@ -116,9 +117,9 @@ class Lattice:
                 new_point = np.array((r*np.cos(theta), r*np.sin(theta))) + ref_point
 
                 # burn a try if point falls outside space 
-                if not (0 <= new_point[0] < length_x):
+                if not (origin[0] <= new_point[0] < length_x+origin[0]):
                     continue
-                if not (0 <= new_point[1] < length_y):
+                if not (origin[1] <= new_point[1] < length_y+origin[1]):
                     continue
 
                 new_radius = radius_density[_index_from_position(new_point)]

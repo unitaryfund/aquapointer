@@ -388,13 +388,17 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
             
-    def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False):
+    def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False, labels=True):
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_box_aspect(self._length_y/self._length_x)
         c = ax.pcolormesh(self._X, self._Y, self._density, cmap='viridis')
         if draw_lattice:
             try:
-                ax.scatter(self._lattice._coords[:,0], self._lattice._coords[:,1], color='blue')
+                ax.scatter(self._lattice._coords[:,0], self._lattice._coords[:,1], color='tab:orange')
+                if labels:
+                    yshift = self._length_y/50
+                    for i,cd in enumerate(self._lattice._coords):
+                        plt.text(cd[0], cd[1]-yshift, str(i))
             except AttributeError:
                 print("Lattice has not been defined")
                 return
@@ -409,6 +413,6 @@ class DensityCanvas:
         fig.colorbar(c)
         return fig, ax
     
-    def draw(self, figsize=(10,8), draw_centers=False, draw_lattice=False):
-        fig, ax = self.plotting_objects(figsize, draw_centers, draw_lattice)
+    def draw(self, figsize=(10,8), draw_centers=False, draw_lattice=False, labels=True):
+        fig, ax = self.plotting_objects(figsize, draw_centers, draw_lattice, labels)
         plt.show()
