@@ -5,17 +5,15 @@
 
 import numpy as np
 from qiskit.primitives import BackendSampler
-from qiskit.quantum_info import SparsePauliOp
 from qiskit import QuantumCircuit
 
 from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: BackendSampler, params: np.ndarray) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
-        self.ising_ham = ising_ham
         self.sampler = sampler
 
         if params.any():
