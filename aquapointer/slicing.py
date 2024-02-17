@@ -74,52 +74,7 @@ def density_slices_by_plane(
         points.append(points_array)
         densities.append(density_array)
 
-    array_points = np.empty(density_grid.grid.shape, dtype=object)
-    dist = np.concatenate((np.zeros(1), distances))
-    delta = density_grid.delta
-    density_3d = density_grid.grid
-
-    for ind in np.ndindex(density_grid.grid.shape):
-        array_points[ind] = density_grid.delta * np.array(ind) + density_grid.origin
-
-    if slicing_planes[0][1][0]:
-        incr = [
-            (int(di / delta[0]), int(dist[d + 1] / delta[0]))
-            for d, di in enumerate(dist[:-1])
-        ]
-        points = [np.mean(array_points[i[0] : i[1], :, :], axis=0) for i in incr] + [
-            np.mean(array_points[incr[-1][1] :, :, :], axis=0)
-        ]
-        densities = [np.mean(density_3d[i[0] : i[1], :, :], axis=0) for i in incr] + [
-            np.mean(density_3d[incr[-1][1] :, :, :], axis=0)
-        ]
-
-    elif slicing_planes[0][1][1]:
-        incr = [
-            (int(di / delta[1]), int(dist[d + 1] / delta[1]))
-            for d, di in enumerate(dist[:-1])
-        ]
-        points = [np.mean(array_points[:, i[0] : i[1], :], axis=1) for i in incr] + [
-            np.mean(array_points[:, incr[-1][1] :, :], axis=1)
-        ]
-        densities = [
-            np.mean(density_grid.grid[:, i[0] : i[1], :], axis=1) for i in incr
-        ] + [np.mean(density_3d[:, incr[-1][1] :, :], axis=1)]
-
-    else:
-        incr = [
-            (int(di / delta[2]), int(dist[d + 1] / delta[2]))
-            for d, di in enumerate(dist[:-1])
-        ]
-        points = [np.mean(array_points[:, :, i[0] : i[1]], axis=2) for i in incr] + [
-            np.mean(array_points[:, :, incr[-1][1] :], axis=2)
-        ]
-        densities = [
-            np.mean(density_grid.grid[:, :, i[0] : i[1]], axis=2) for i in incr
-        ] + [np.mean(density_3d[:, :, incr[-1][1] :], axis=2)]
-
     return points, densities
-    # return idx_lists, point_lists, density_lists
 
 
 def shape_slice(points: NDArray, density, normal: NDArray):
@@ -143,12 +98,12 @@ def shape_slice(points: NDArray, density, normal: NDArray):
 
     m = max([len(p) for p in point_list])
     n = len(point_list)
-    points_array = np.zeros((m, n))
+    points_array = np.zeros((m, n, 3))
     density_array = np.zeros((m, n))
 
-    # for i in range(n):
-    #     points_array[:, i] = point_list[i] # TODO: generalize
-    #     density_array[:, i] = density_list[i]
+    for j, i in np.ndindex(n, m):  # i in range(n):
+        points_array[i, j, :] = point_list[j][i]  # TODO: generalize
+        density_array[i, j] = density_list[j][i]
 
     return points_array, density_array
 
