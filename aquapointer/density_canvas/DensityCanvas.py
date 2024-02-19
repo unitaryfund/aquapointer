@@ -197,22 +197,28 @@ class DensityCanvas:
         self.clear_lattice()
         self.clear_pubo()
         self.clear_linear()
-        if centering:
-            shift = np.array((self._length_x/2+self._origin[0], self._length_y/2+self._origin[1]))-lattice._center
-        else:
-            shift = 0
         if self._length_x < lattice._length_x:
             raise ValueError("The lattice does not fit in the canvans along the x direction")
         if self._length_y < lattice._length_y:
             raise ValueError("The lattice does not fit in the canvans along the y direction")
         self._lattice = lattice
+        shift = self._origin if centering else np.zeros(2) 
         self._lattice._coords += shift
+        try:
+            self._lattice._history = [np.array(h)+shift for h in self._lattice._history]
+        except AttributeError:
+            pass
     
     def clear_lattice(self):
         try:
             del self._lattice
         except AttributeError:
             pass
+
+    def lattice_dynamics(self, spacing: numbers.Number, T: numbers.Number = 100, dt: numbers.Number = 0.1, save_history=False, viscosity=0):
+        lattice1 = Lattice(self._lattice._coords - self._origin)
+        lattice1.dynamics(self._density, (self._length_x, self._length_y), spacing, T, dt, save_history, viscosity)
+        self.set_lattice(lattice1)
         
     def calculate_pubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None):
         """ Calcuates the coefficients of the cost function.
@@ -388,7 +394,7 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
             
-    def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False, labels=True):
+    def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False, lattice_history=False, labels=True):
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_box_aspect(self._length_y/self._length_x)
         c = ax.pcolormesh(self._X, self._Y, self._density, cmap='viridis')
@@ -401,18 +407,22 @@ class DensityCanvas:
                         plt.text(cd[0], cd[1]-yshift, str(i))
             except AttributeError:
                 print("Lattice has not been defined")
-                return
+        if lattice_history:
+            try:
+                for trajectory in self._lattice._history:
+                    ax.plot(np.array(trajectory)[:,0], np.array(trajectory)[:,1], color='tab:orange')
+            except AttributeError:
+                print("no history for this lattice")
         if draw_centers:
             try:
                 ax.scatter(self._centers[:,0], self._centers[:,1], color='red', marker="x", s=120)
             except AttributeError:
                 print("Centers have not been defined")
-                return
         ax.set_xlabel('x-axis')
         ax.set_ylabel('y-axis')
         fig.colorbar(c)
         return fig, ax
     
-    def draw(self, figsize=(10,8), draw_centers=False, draw_lattice=False, labels=True):
-        fig, ax = self.plotting_objects(figsize, draw_centers, draw_lattice, labels)
+    def draw(self, figsize=(10,8), draw_centers=False, draw_lattice=False, lattice_history=False, labels=True):
+        fig, ax = self.plotting_objects(figsize, draw_centers, draw_lattice, lattice_history, labels)
         plt.show()

@@ -11,6 +11,7 @@ import aquapointer.density_canvas.Lp_norm as lpn
 import aquapointer.density_canvas.embedding as emb
 from itertools import combinations
 from scipy.stats import qmc
+from scipy.integrate import RK45
 
 class Lattice:
     """ This is a class that contains information on 2D lattices"""
@@ -25,10 +26,6 @@ class Lattice:
             self._min_spacing = kwargs['min_distance']
         except KeyError:
             self._min_spacing = emb.find_minimal_distance(self._coords)
-        try:
-            self._center = kwargs['center']
-        except KeyError:
-            self._center = np.mean(self._coords, axis=0)
         try:
             self._length_x = kwargs['length_x']
         except KeyError:
@@ -63,11 +60,10 @@ class Lattice:
         return cls(np.array(coords, dtype=float), min_spacing=spacing, length_x=length_x, length_y=length_y, type="rectangular")
 
     @classmethod
-    def poisson_disk(cls, density: ArrayLike, origin: ArrayLike, length: tuple, spacing: tuple, max_num: int):
+    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int):
         """
         Poisson disk sampling with variable radius.
         density: 2d array representing probability density
-        origin: coordinates of the bottom left point
         length: tuple (length_x, length_y) representing the physical size of the 2d space
         spacing: tuple (min_radius, max_radius) representing the minimum and maximum exclusion radius
         max_num: maximum number of points to sample
@@ -78,8 +74,8 @@ class Lattice:
         scale_x, scale_y = np.array(length)/np.array(density.shape)
 
         def _index_from_position(pos):
-            idx_x = int((pos[1]-origin[1])/scale_x)
-            idx_y = int((pos[0]-origin[0])/scale_y)
+            idx_x = int((pos[1])/scale_x)
+            idx_y = int((pos[0])/scale_y)
             return (idx_x, idx_y)
         
         # convert probability density map to a radius map
@@ -91,19 +87,17 @@ class Lattice:
 
         coords = []
         queue = []
-        probs = []
         num = 0
 
         # pick the first point as the density maximum and initialize queue
-        first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y]) + origin
+        first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y])
         coords.append(first_point)
         queue.append(num)
-        probs.append(density[_index_from_position(first_point)])
         num += 1
 
         # sample until max number is reached or points cannot be placed
-        while len(queue) and (num<=max_num):
-            i = np.random.choice(queue)#, p=np.array(probs)/np.sum(probs))
+        while len(queue) and (num<max_num):
+            i = np.random.choice(queue)
             ref_point = coords[i]
             ref_radius = radius_density[_index_from_position(ref_point)]
             placed = False
@@ -117,9 +111,9 @@ class Lattice:
                 new_point = np.array((r*np.cos(theta), r*np.sin(theta))) + ref_point
 
                 # burn a try if point falls outside space 
-                if not (origin[0] <= new_point[0] < length_x+origin[0]):
+                if not (0 <= new_point[0] < length_x):
                     continue
-                if not (origin[1] <= new_point[1] < length_y+origin[1]):
+                if not (0 <= new_point[1] < length_y):
                     continue
 
                 new_radius = radius_density[_index_from_position(new_point)]
@@ -137,16 +131,114 @@ class Lattice:
                 else:
                     coords.append(new_point)
                     queue.append(num)
-                    probs.append(density[_index_from_position(new_point)])
                     num += 1
                     placed = True
 
             if not placed:
                 # after 30 tries, no point could be placed around i. remove it from the active queue
                 queue.remove(i)
-                probs.remove(density[_index_from_position(coords[i])])
         
         return cls(np.array(coords, dtype=float), type="poisson_disk")
+
+
+    def dynamics(self, density: ArrayLike, length: tuple, spacing: numbers.Number, T: numbers.Number = 100, dt: numbers.Number = 0.1, save_history=False, viscosity=0):
+        """ Calculates newtonian dynamics treating the lattice points as
+        particles subject to Lennard-Jones interactions plus a space dependent
+        scalar field given by -density.
+        density: 2d array representing probability density, it is turned into attractive potential by putting a - sign in front 
+        length: tuple (length_x, length_y) representing the physical size of the 2d space
+        spacing: float indicating the minimal spacing between particles (minimum of Lennard-Jones potential)
+        T: total time of the dynamics
+        dt: timestep in integrator
+        """
+
+        def _leapfrog():
+            t = 0
+            while t<T:
+                # half update velocities
+                for i in range(len(vs)):
+                    vs[i] += (_LennardJones_force(i) - _gradient(i) - _viscosity(i)) * dt/2
+                    #vs[i] += -_gradient(i) * dt/2
+                # update positions
+                for i in range(len(xs)):
+                    xs[i] += vs[i] * dt
+                    if xs[i][0]>length[0]:
+                        xs[i][0]=length[0]
+                    if xs[i][0]<0:
+                        xs[i][0]=0
+                    if xs[i][1]>length[1]:
+                        xs[i][1]=length[1]
+                    if xs[i][1]<0:
+                        xs[i][1]=0
+                    history[i].append(np.array(xs[i]))
+                # half update velocities
+                for i in range(len(vs)):
+                    vs[i] += (_LennardJones_force(i) - _gradient(i) - _viscosity(i)) * dt/2
+                    #vs[i] += -_gradient(i) * dt/2
+                t += dt
+
+        def _viscosity(i):
+            return K*vs[i]
+        
+        def _gradient(i):
+            idx_x, idx_y = _index_from_position(xs[i])
+            grad = np.gradient(attractive_field) 
+            field_contribution = np.array([grad[1][idx_x, idx_y], grad[0][idx_x, idx_y]])
+            return field_contribution
+                
+        def _index_from_position(pos):
+            idx_x = min(int((pos[1])/scale_x), density.shape[0]-1)
+            idx_y = min(int((pos[0])/scale_y), density.shape[1]-1)
+            return (idx_x, idx_y)
+        
+        def _position_from_index(idx):
+            return np.array([idx[1]*scale_x, idx[0]*scale_y])
+        
+        def _LennardJones_force(i):
+            LJ_force = np.zeros(2)
+            # sum contribution of all other particles
+            for j, _ in enumerate(xs):
+                if j==i:
+                    continue
+                r_ij = xs[i]-xs[j]
+                r = max(np.linalg.norm(r_ij), 1e-1)
+                # force is derivative of Lennard-Jones potential
+                LJ_force += A*(2*(sigma**2/r**3)-(sigma/r**2)) * r_ij
+            return LJ_force
+        
+        scale_x, scale_y = np.array(length)/np.array(density.shape)
+        
+        # define potential parameters
+        attractive_field = -density
+        sigma = 12 * spacing/2 #lennard-jones minimal distance is 2**(1/6) sigma
+        A = 1e-4 * 4 * np.max(density) #the depth of the lennard-jones potential is A/4
+        K = viscosity #viscosity constant
+        
+        # initialize positions and velocities
+        xs = self._coords
+        vs = np.zeros(xs.shape)
+        #vs = .1*(2*np.random.rand(*xs.shape)-1)
+
+        # initialize history        
+        history = []
+        for x in xs:
+            history.append([np.array(x)])
+
+        # compute dynamics
+        _leapfrog()
+
+        if save_history:
+            self._history = history
+        
+        self._min_spacing = emb.find_minimal_distance(self._coords)
+        self._length_x = emb.find_maximal_distance(self._coords[:,0])
+        self._length_y = emb.find_maximal_distance(self._coords[:,1])
+        self._lattice_type = "dynamics"
+
+
+
+        
+        
 
         
 
