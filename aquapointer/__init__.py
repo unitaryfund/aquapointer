@@ -3,6 +3,6 @@
 # This source code is licensed under the GPL license (v3) found in the
 # LICENSE file in the root directory of this source tree.
 
-
+from aquapointer import analog, analog_digital, density_canvas, digital, slicing
 from aquapointer.analog import density_mapping, qubo_solution, water_placement, utils
 from aquapointer.analog_digital import processor
