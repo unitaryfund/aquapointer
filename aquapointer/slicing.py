@@ -20,15 +20,14 @@ def density_file_to_grid(filename: str) -> Grid:
 def density_slices_by_axis(
     density_grid: Grid, axis: NDArray, distances: NDArray
 ) -> Tuple[List[NDArray]]:
-    origin = density_grid.origin
+    origin = density_origin(density_grid)
     slicing_planes = generate_planes_by_axis(axis, distances, origin)
-    return density_slices_by_plane(density_grid, slicing_planes, distances)
+    return density_slices_by_plane(density_grid, slicing_planes)
 
 
 def density_slices_by_plane(
     density_grid: Grid,
     slicing_planes: List[Tuple[NDArray, NDArray]],
-    distances: NDArray,
 ) -> Tuple[List[NDArray]]:
     idx_lists = [[] for _ in range(len(slicing_planes) + 1)]
     point_lists = [[] for _ in range(len(slicing_planes) + 1)]
@@ -37,7 +36,9 @@ def density_slices_by_plane(
 
     for ind in np.ndindex(density_grid.grid.shape):
         density = density_grid.grid[ind]
-        center = density_grid.delta * np.array(ind) + density_grid.origin
+        center = density_grid.delta.round(decimals=10) * np.array(ind) + density_origin(
+            density_grid
+        )
 
         for s in range(len(slicing_planes) + 1):
             if s == 0:
@@ -47,18 +48,18 @@ def density_slices_by_plane(
                     coords = center - d * normals[s] / 2
                     break
 
-            elif s < len(slicing_planes):
+            elif 0 < s < len(slicing_planes):
                 # slice between two planes
                 d1 = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
                 d2 = (center - slicing_planes[s][0]).dot(normals[s])
-                if d1 > 0 and d2 <= 0:
+                if d1 >= 0 and d2 < 0:
                     coords = center - (d1 * normals[s - 1] + d2 * normals[s]) / 2
                     break
 
             else:
                 # slice with one plane, in direction of the normal
                 d = (center - slicing_planes[-1][0]).dot(normals[-1])
-                if d >= 0:
+                if d > 0:
                     coords = center - d * normals[-1] / 2
 
         idx_lists[s].append(ind)
@@ -116,12 +117,12 @@ def generate_planes_by_axis(
     return [(ref_point + axis * d, axis) for d in distances]
 
 
-def find_density_origin(density_grid: Grid) -> NDArray:
-    return density_grid.origin
+def density_origin(density_grid: Grid) -> NDArray:
+    return density_grid.origin.round(decimals=10)
 
 
 def find_density_point_boundaries(density_grid: Grid) -> List[NDArray]:
-    return density_grid.grid.shape * density_grid.delta
+    return density_grid.grid.shape * density_grid.delta.round(decimals=10)
 
 
 def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
