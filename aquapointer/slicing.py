@@ -50,13 +50,13 @@ def density_slices_by_plane(
         ]
     )
     midplane_normals = (
-        [normals[0] / norm(normals[0])]
+        [normals[0]]
         + [
             np.mean(np.array(normals[n : n + 2]), axis=0)
             / norm(np.mean(np.array(normals[n : n + 2]), axis=0))
             for n in range(len(normals) - 1)
         ]
-        + [normals[-1] / norm(normals[-1])]
+        + [normals[-1]]
     )
 
     for ind in np.ndindex(density_grid.grid.shape):
@@ -97,7 +97,7 @@ def density_slices_by_plane(
     densities = []
     for i in range(len(idx_lists)):
         points_array, density_array = shape_slice(
-            point_lists[i], density_lists[i], midplanes[i][1]
+            point_lists[i], density_lists[i], midplane_normals[i]
         )
         points.append(points_array)
         densities.append(density_array)
@@ -106,26 +106,52 @@ def density_slices_by_plane(
 
 
 def shape_slice(points: NDArray, density, normal: NDArray):
-    # rotation angles between z' (normal) and the z-axis
-    theta = np.arctan2(normal[1], normal[0])
-    phi = np.arctan2(norm(normal[0:2]), normal[2])
-    # rotate x and y to x' and y' respectively
-    x_prime = np.array([np.cos(phi), np.sin(phi), 0])
-    y_prime = np.array(
-        [-np.sin(phi) * np.cos(theta), np.cos(phi) * np.cos(theta), np.sin(theta)]
+    n = np.cross(np.array([0, 0, 1]), normal)
+    n1 = n[0]
+    n2 = n[1]
+    n3 = n[2]
+    theta = np.arccos(np.dot(normal, [0, 0, 1]))
+    Rn = np.array(
+        [
+            [
+                np.cos(theta) + (n1**2) * (1 - np.cos(theta)),
+                n1 * n2 * (1 - np.cos(theta)) - n3 * np.sin(theta),
+                n1 * n3 * (1 - np.cos(theta)) + n2 * np.sin(theta),
+            ],
+            [
+                n1 * n2 * (1 - np.cos(theta)) + n3 * np.sin(theta),
+                np.cos(theta) + (n2**2) * (1 - np.cos(theta)),
+                n2 * n3 * (1 - np.cos(theta)) - n1 * np.sin(theta),
+            ],
+            [
+                n1 * n3 * (1 - np.cos(theta)) - n2 * np.sin(theta),
+                n2 * n3 * (1 - np.cos(theta)) + n1 * np.sin(theta),
+                np.cos(theta) + (n3**2) * (1 - np.cos(theta)),
+            ],
+        ]
     )
+    x_prime = Rn @ np.array([1, 0, 0])
+    y_prime = Rn @ np.array([0, 1, 0])
+
     # project points onto y' and group indices of projected points
     point_list = []
     density_list = []
 
-    for _, group in groupby(
-        sorted(points, key=lambda x: np.round(x.dot(y_prime), decimals=10)),
-        key=lambda x: x.dot(y_prime),
+    for _, yp_group in groupby(
+        sorted(zip(points, density), key=lambda y: y[0].dot(y_prime)),
+        key=lambda g: g[0].dot(y_prime),
     ):
         # project points onto x' and sort indices of projected points
-        idxs_by_xp = np.argsort([g.dot(x_prime) for g in group])
-        point_list.append([points[i] for i in idxs_by_xp])
-        density_list.append([density[i] for i in idxs_by_xp])
+        p = []
+        d = []
+        yp_list = sorted(list(yp_group), key=lambda g: g[0].dot(x_prime))
+
+        for _, xp_group in groupby(yp_list, key=lambda x: x[0].dot(x_prime)):
+            xp_list = list(xp_group)
+            p.append(list(xp_list)[0][0])
+            d.append(np.mean(np.array(list(zip(*xp_list))[1])))
+        point_list.append(p)
+        density_list.append(np.mean(np.array(d)))
 
     m = max([len(p) for p in point_list])
     n = len(point_list)
