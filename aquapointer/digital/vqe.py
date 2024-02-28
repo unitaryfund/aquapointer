@@ -11,7 +11,7 @@ from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray, prob_opt_sol: bool) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
         self.sampler = sampler
@@ -21,6 +21,8 @@ class VQE:
         else:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
 
+        self.r = 0.1
+        self.prob_opt_sol = prob_opt_sol
         self.history = []
 
     def run(self, alpha: float, maxiter: int, method="COBYLA"):
@@ -109,12 +111,31 @@ class VQE:
         sorted_values = prob_energy[:, 1][sorted_indices]
 
         opt_energy = sorted_values[0]
+        if opt_energy < 0:
+            factor = 1 - self.r
+        else:
+            factor = 1 + self.r
+
+        # now obtain the energies that are 10% close to optimal
+        eps_rel_energies = []
+        for i, val in enumerate(sorted_values):
+            if val <= factor * opt_energy:
+                eps_rel_energies.append(i)
+
         opt_b = sorted_keys[0]
         opt_prob = sorted_probs[0]
         prob_energy = np.array(prob_energy)
         cvar_energy = self._compute_cvar(prob_energy[:, 0], prob_energy[:, 1], alpha)
 
+        top_opt_prob = np.sum(sorted_probs[eps_rel_energies])
+        avg_top_energies = np.mean(sorted_probs[eps_rel_energies]*sorted_values[eps_rel_energies])
+
         # save intermediate optimal bitsting and energy to self.history
-        self.history.append([opt_b, opt_prob, opt_energy])
+        if self.prob_opt_sol:
+            self.history.append([opt_b, opt_prob, opt_energy])
+        else:
+            self.history.append([top_opt_prob, avg_top_energies])
+
+
 
         return cvar_energy
