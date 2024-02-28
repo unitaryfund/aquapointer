@@ -151,7 +151,7 @@ def shape_slice(points: NDArray, density, normal: NDArray):
             p.append(list(xp_list)[0][0])
             d.append(np.mean(np.array(list(zip(*xp_list))[1])))
         point_list.append(p)
-        density_list.append(np.mean(np.array(d)))
+        density_list.append(np.array(d))
 
     m = max([len(p) for p in point_list])
     n = len(point_list)
