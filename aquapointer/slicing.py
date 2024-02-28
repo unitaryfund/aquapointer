@@ -159,8 +159,9 @@ def shape_slice(points: NDArray, density, normal: NDArray):
     density_array = np.zeros((m, n))
 
     for j in range(n):
-        points_array[:, j, :] = point_list[j]  # TODO: generalize
-        density_array[:, j] = density_list[j]
+        i = int((m - len(point_list[j])) / 2)
+        points_array[i : i + len(point_list[j]), j, :] = point_list[j]
+        density_array[i : i + len(point_list[j]), j] = density_list[j]
 
     return points_array, density_array
 
