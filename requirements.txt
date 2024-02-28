@@ -9,3 +9,5 @@ pulser
 numpy
 scipy
 gridData
+numba
+openqaoa
