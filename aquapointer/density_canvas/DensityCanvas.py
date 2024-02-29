@@ -173,7 +173,6 @@ class DensityCanvas:
             raise ValueError(f"The slice must have shape {self._density.shape}")
         self.clear_density()
         self.clear_pubo()
-        self.clear_linear()
         self._density = slice
         self._empty = False
         self._density_type = "data"
@@ -181,7 +180,6 @@ class DensityCanvas:
     def set_density_from_gaussians(self, centers: ArrayLike, amplitude: numbers.Number, variance: numbers.Number):
         self.clear_density()
         self.clear_pubo()
-        self.clear_linear()
         rvs = []
         for mu in centers:
             rvs.append(multivariate_normal(mu, variance))
@@ -192,22 +190,70 @@ class DensityCanvas:
         self._variance = variance
         self._amplitude = amplitude
         self._density_type = "gaussians"
+    
+    def set_randomized_gaussian_density(self, n_centers: numbers.Number, amplitude: numbers.Number, variance: numbers.Number, minimal_distance: numbers.Number, padding: numbers.Number, seed: numbers.Number = None):
+        np.random.seed(seed)
+        centers = []
+        count = 0
+        while (len(centers) < n_centers) and count<10000:
+            x = np.random.rand()*(self._length_x-2*padding)+(self._origin[0]+padding)
+            y = np.random.rand()*(self._length_y-2*padding)+(self._origin[1]+padding)
+            c = np.array([x,y])
+            check = True
+            for c1 in centers:
+                if np.linalg.norm(c-c1) < minimal_distance:
+                    check = False
+                    count += 1
+                    break
+            if check:
+                centers.append(c)
+        if len(centers)<n_centers:
+            raise ValueError("It was not possible to generate that many Gaussians on this canvas")
+        self.set_density_from_gaussians(centers, amplitude, variance)
 
-    def set_lattice(self, lattice: Lattice, centering=True):
+    def set_lattice(self, lattice: Lattice, mode="fixed"):
+        """
+        Possible modes are:
+        'center': the center of mass of the lattice becomes the center of the canvas
+        'origin': the (0,0) lattice cooridnate becomes the origin of the canvas
+        'fixed': the lattice coordinates are kept unchanged
+        """
         self.clear_lattice()
         self.clear_pubo()
-        self.clear_linear()
         if self._length_x < lattice._length_x:
             raise ValueError("The lattice does not fit in the canvans along the x direction")
         if self._length_y < lattice._length_y:
             raise ValueError("The lattice does not fit in the canvans along the y direction")
         self._lattice = lattice
-        shift = self._origin if centering else np.zeros(2) 
+        
+        if mode == "center":
+            shift = self._origin+np.array([
+                self._length_x-lattice._length_x, self._length_y-lattice._length_y
+            ])/2
+        elif mode == "origin":
+            shift = self._origin
+        elif mode =="fixed":
+            shift = np.zeros(2)
+        else:
+            raise ValueError("The lattice set mode is not recognized")
+        
         self._lattice._coords += shift
         try:
             self._lattice._history = [np.array(h)+shift for h in self._lattice._history]
         except AttributeError:
             pass
+
+    def set_rectangular_lattice(self, num_x, num_y, spacing):
+        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
+        self.set_lattice(lattice, mode='center')
+
+    def set_poisson_disk_lattice(self, spacing: tuple):
+        lattice = Lattice.poisson_disk(
+            density=self._density,
+            length=(self._length_x, self._length_y),
+            spacing=spacing,
+        )
+        self.set_lattice(lattice, mode='origin')
     
     def clear_lattice(self):
         try:
@@ -273,81 +319,35 @@ class DensityCanvas:
             "low": low
         }
     
-    def calculate_linear_coefficients(self, p: int, params: ArrayLike):
-        """ Calcuates the linear coefficients of the cost function.
-        If ubo coefficients have already been calculated, fetch them.
-        Otherwise use formula and return coefficient list
-        """
-
-        # try to fetch linear coefficients from existing pubo
-        try:
-            coeffs = self._pubo["coeffs"]
-            self._linear = {
-                "gammas": list(coeffs[1].values()),
-                "p": self._pubo["p"],
-                "params": self._pubo["params"]
-            }
-            return
-        except AttributeError:
-            pass
-        except KeyError:
-            pass
-        
-        # check that lattice exists
-        try:
-            lattice = self._lattice
-        except AttributeError:
-            raise AttributeError("Lattice needs to be defined in order to calculate linear coefficients")
-        
-        # define base and component functions
-        def _base() -> Self:
-            return self
-        def _component(i: int, pms: ArrayLike) -> Self:
-            stg = DensityCanvas(
-                origin=self._origin,
-                length_x=self._length_x,
-                length_y=self._length_y,
-                npoints_x=self._npoints_x,
-                npoints_y=self._npoints_y
-            )
-            stg.set_density_from_gaussians([lattice._coords[i]], *pms)
-            return stg
-
-        # calculate using formula
-        self._linear = {
-            "gammas": lpn.Lp_coefficients_first_order(len(lattice._coords), p, _base, _component, params),
-            "p": p,
-            "params": params,
-        }
-    
     def clear_pubo(self):
         try:
             del self._pubo
         except AttributeError:
             pass
     
-    def clear_linear(self):
-        try:
-            del self._linear
-        except AttributeError:
-            pass
-
-    def decimate_lattice(self, p: int, params: ArrayLike):
+    def decimate_lattice(self):
         # check that lattice exists
         try:
             lattice = self._lattice
         except AttributeError:
             raise AttributeError("Lattice needs to be defined in order to decimate it")
         
-        self.clear_pubo()
-        self.clear_linear()
-
-        self.calculate_linear_coefficients(p, params)
+        # check that coefficients have been calculated
+        try:
+            linear = self._pubo["coeffs"][1]
+        except AttributeError:
+            raise AttributeError("Coefficients need to be calculated before decimation")
         
-        new_coords = [c for i,c in enumerate(lattice._coords) if self._linear["gammas"][i] < 0]
-        self.clear_lattice()
-        new_lattice = Lattice(np.array(new_coords))
-        self._lattice = new_lattice
+        new_coords = [c for i,c in enumerate(lattice._coords) if linear[(i,)] < 0]
+        new_lattice = Lattice(np.array(new_coords), lattice_type=f'{self._lattice._lattice_type}(decimated)')
+        pubo = self._pubo
+        self.set_lattice(new_lattice)
+        self.calculate_pubo_coefficients(
+            p=pubo["p"],
+            params=pubo["params"],
+            high=pubo["high"],
+            low=pubo["low"],
+        )
     
     def calculate_bitstring_cost_from_coefficients(self, bitstring: Union[str, ArrayLike], high=None, low=None) -> numbers.Number:
         try: 

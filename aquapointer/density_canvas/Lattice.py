@@ -60,7 +60,7 @@ class Lattice:
         return cls(np.array(coords, dtype=float), min_spacing=spacing, length_x=length_x, length_y=length_y, type="rectangular")
 
     @classmethod
-    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int):
+    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000):
         """
         Poisson disk sampling with variable radius.
         density: 2d array representing probability density
@@ -141,7 +141,7 @@ class Lattice:
         return cls(np.array(coords, dtype=float), type="poisson_disk")
 
 
-    def dynamics(self, density: ArrayLike, length: tuple, spacing: numbers.Number, T: numbers.Number = 100, dt: numbers.Number = 0.1, save_history=False, viscosity=0):
+    def dynamics(self, density: ArrayLike, length: tuple, spacing: numbers.Number, T: numbers.Number = 1000, dt: numbers.Number = 1, save_history=False, viscosity=0.1):
         """ Calculates newtonian dynamics treating the lattice points as
         particles subject to Lennard-Jones interactions plus a space dependent
         scalar field given by -density.
