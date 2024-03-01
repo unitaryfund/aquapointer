@@ -20,135 +20,148 @@ def density_file_to_grid(filename: str) -> Grid:
 def density_slices_by_axis(
     density_grid: Grid, axis: NDArray, distances: NDArray
 ) -> Tuple[List[NDArray]]:
-    origin = density_grid.origin
+    origin = density_origin(density_grid)
     slicing_planes = generate_planes_by_axis(axis, distances, origin)
-    return density_slices_by_plane(density_grid, slicing_planes, distances)
+    return density_slices_by_plane(density_grid, slicing_planes)
 
 
 def density_slices_by_plane(
     density_grid: Grid,
     slicing_planes: List[Tuple[NDArray, NDArray]],
-    distances: NDArray,
 ) -> Tuple[List[NDArray]]:
     idx_lists = [[] for _ in range(len(slicing_planes) + 1)]
     point_lists = [[] for _ in range(len(slicing_planes) + 1)]
     density_lists = [[] for _ in range(len(slicing_planes) + 1)]
     normals = [s / norm(s) for s in list(zip(*slicing_planes))[1]]
+    origin = density_origin(density_grid)
+    endpoint = density_point_boundaries(density_grid)
+
+    midplane_points = (
+        [(origin + slicing_planes[0][0]) / 2]
+        + [
+            (slicing_planes[s][0] + slicing_planes[s + 1][0]) / 2
+            for s in range(len(slicing_planes) - 1)
+        ]
+        + [
+            slicing_planes[-1][0]
+            + slicing_planes[-1][1]
+            * (endpoint - slicing_planes[-1][0]).dot(slicing_planes[-1][1])
+            / 2
+        ]
+    )
+    midplane_normals = (
+        [normals[0]]
+        + [
+            np.mean(np.array(normals[n : n + 2]), axis=0)
+            / norm(np.mean(np.array(normals[n : n + 2]), axis=0))
+            for n in range(len(normals) - 1)
+        ]
+        + [normals[-1]]
+    )
 
     for ind in np.ndindex(density_grid.grid.shape):
         density = density_grid.grid[ind]
-        center = density_grid.delta * np.array(ind) + density_grid.origin
+        center = np.round(density_grid.delta, decimals=10) * np.array(
+            ind
+        ) + density_origin(density_grid)
 
         for s in range(len(slicing_planes) + 1):
             if s == 0:
                 # slice is in opposite direction of the normal
                 d = (center - slicing_planes[s][0]).dot(normals[s])
                 if d < 0:
-                    coords = center - d * normals[s] / 2
                     break
 
-            elif s < len(slicing_planes):
+            elif 0 < s < len(slicing_planes):
                 # slice between two planes
                 d1 = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
                 d2 = (center - slicing_planes[s][0]).dot(normals[s])
-                if d1 > 0 and d2 <= 0:
-                    coords = center - (d1 * normals[s - 1] + d2 * normals[s]) / 2
+                if d1 >= 0 and d2 < 0:
                     break
 
             else:
                 # slice with one plane, in direction of the normal
-                d = (center - slicing_planes[-1][0]).dot(normals[-1])
-                if d >= 0:
-                    coords = center - d * normals[-1] / 2
+                d = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
+                if d > 0:
+                    break
 
         idx_lists[s].append(ind)
-        point_lists[s].append(coords)
+        point_lists[s].append(
+            center
+            - (center - midplane_points[s]).dot(midplane_normals[s])
+            * midplane_normals[s]
+        )
         density_lists[s].append(density)
 
     points = []
     densities = []
     for i in range(len(idx_lists)):
         points_array, density_array = shape_slice(
-            point_lists[i], density_lists[i], normals[0]  # TODO: generalize
+            point_lists[i], density_lists[i], midplane_normals[i]
         )
         points.append(points_array)
         densities.append(density_array)
 
-    array_points = np.empty(density_grid.grid.shape, dtype=object)
-    dist = np.concatenate((np.zeros(1), distances))
-    delta = density_grid.delta
-    density_3d = density_grid.grid
-
-    for ind in np.ndindex(density_grid.grid.shape):
-        array_points[ind] = density_grid.delta * np.array(ind) + density_grid.origin
-
-    if slicing_planes[0][1][0]:
-        incr = [
-            (int(di / delta[0]), int(dist[d + 1] / delta[0]))
-            for d, di in enumerate(dist[:-1])
-        ]
-        points = [np.mean(array_points[i[0] : i[1], :, :], axis=0) for i in incr] + [
-            np.mean(array_points[incr[-1][1] :, :, :], axis=0)
-        ]
-        densities = [np.mean(density_3d[i[0] : i[1], :, :], axis=0) for i in incr] + [
-            np.mean(density_3d[incr[-1][1] :, :, :], axis=0)
-        ]
-
-    elif slicing_planes[0][1][1]:
-        incr = [
-            (int(di / delta[1]), int(dist[d + 1] / delta[1]))
-            for d, di in enumerate(dist[:-1])
-        ]
-        points = [np.mean(array_points[:, i[0] : i[1], :], axis=1) for i in incr] + [
-            np.mean(array_points[:, incr[-1][1] :, :], axis=1)
-        ]
-        densities = [
-            np.mean(density_grid.grid[:, i[0] : i[1], :], axis=1) for i in incr
-        ] + [np.mean(density_3d[:, incr[-1][1] :, :], axis=1)]
-
-    else:
-        incr = [
-            (int(di / delta[2]), int(dist[d + 1] / delta[2]))
-            for d, di in enumerate(dist[:-1])
-        ]
-        points = [np.mean(array_points[:, :, i[0] : i[1]], axis=2) for i in incr] + [
-            np.mean(array_points[:, :, incr[-1][1] :], axis=2)
-        ]
-        densities = [
-            np.mean(density_grid.grid[:, :, i[0] : i[1]], axis=2) for i in incr
-        ] + [np.mean(density_3d[:, :, incr[-1][1] :], axis=2)]
-
     return points, densities
-    # return idx_lists, point_lists, density_lists
 
 
 def shape_slice(points: NDArray, density, normal: NDArray):
-    # rotation angles between z' (normal) and the z-axis
-    theta = np.arctan2(normal[1], normal[0])
-    phi = np.arctan2(norm(normal[0:2]), normal[2])
-    # rotate x and y to x' and y' respectively
-    x_prime = np.array([np.cos(phi), np.sin(phi), 0])
-    y_prime = np.array(
-        [-np.sin(phi) * np.cos(theta), np.cos(phi) * np.cos(theta), np.sin(theta)]
+    n = np.cross(np.array([0, 0, 1]), normal)
+    n1 = n[0]
+    n2 = n[1]
+    n3 = n[2]
+    theta = np.arccos(np.dot(normal, [0, 0, 1]))
+    Rn = np.array(
+        [
+            [
+                np.cos(theta) + (n1**2) * (1 - np.cos(theta)),
+                n1 * n2 * (1 - np.cos(theta)) - n3 * np.sin(theta),
+                n1 * n3 * (1 - np.cos(theta)) + n2 * np.sin(theta),
+            ],
+            [
+                n1 * n2 * (1 - np.cos(theta)) + n3 * np.sin(theta),
+                np.cos(theta) + (n2**2) * (1 - np.cos(theta)),
+                n2 * n3 * (1 - np.cos(theta)) - n1 * np.sin(theta),
+            ],
+            [
+                n1 * n3 * (1 - np.cos(theta)) - n2 * np.sin(theta),
+                n2 * n3 * (1 - np.cos(theta)) + n1 * np.sin(theta),
+                np.cos(theta) + (n3**2) * (1 - np.cos(theta)),
+            ],
+        ]
     )
+    x_prime = Rn @ np.array([1, 0, 0])
+    y_prime = Rn @ np.array([0, 1, 0])
+
     # project points onto y' and group indices of projected points
     point_list = []
     density_list = []
 
-    for _, group in groupby(points, lambda x: x.dot(y_prime)):
+    for _, yp_group in groupby(
+        sorted(zip(points, density), key=lambda y: y[0].dot(y_prime)),
+        key=lambda g: g[0].dot(y_prime),
+    ):
         # project points onto x' and sort indices of projected points
-        idxs_by_xp = np.argsort([g.dot(x_prime) for g in group])
-        point_list.append([points[i] for i in idxs_by_xp])
-        density_list.append([density[i] for i in idxs_by_xp])
+        p = []
+        d = []
+        yp_list = sorted(list(yp_group), key=lambda g: g[0].dot(x_prime))
+
+        for _, xp_group in groupby(yp_list, key=lambda x: x[0].dot(x_prime)):
+            xp_list = list(xp_group)
+            p.append(list(xp_list)[0][0])
+            d.append(np.mean(np.array(list(zip(*xp_list))[1])))
+        point_list.append(p)
+        density_list.append(np.array(d))
 
     m = max([len(p) for p in point_list])
     n = len(point_list)
-    points_array = np.zeros((m, n))
+    points_array = np.zeros((m, n, 3))
     density_array = np.zeros((m, n))
 
-    # for i in range(n):
-    #     points_array[:, i] = point_list[i] # TODO: generalize
-    #     density_array[:, i] = density_list[i]
+    for j in range(n):
+        i = int((m - len(point_list[j])) / 2)
+        points_array[i : i + len(point_list[j]), j, :] = point_list[j]
+        density_array[i : i + len(point_list[j]), j] = density_list[j]
 
     return points_array, density_array
 
@@ -161,12 +174,14 @@ def generate_planes_by_axis(
     return [(ref_point + axis * d, axis) for d in distances]
 
 
-def find_density_origin(density_grid: Grid) -> NDArray:
-    return density_grid.origin
+def density_origin(density_grid: Grid) -> NDArray:
+    return density_grid.origin.round(decimals=10)
 
 
-def find_density_point_boundaries(density_grid: Grid) -> List[NDArray]:
-    return density_grid.grid.shape * density_grid.delta
+def density_point_boundaries(density_grid: Grid) -> List[NDArray]:
+    return density_grid.grid.shape * density_grid.delta.round(
+        decimals=10
+    ) + density_origin(density_grid)
 
 
 def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
