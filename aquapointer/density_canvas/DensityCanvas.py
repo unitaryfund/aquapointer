@@ -41,6 +41,11 @@ class DensityCanvas:
         self._max_x = self._min_x + self._length_x
         self._min_y = self._origin[1]
         self._max_y = self._min_y + self._length_y
+
+        # center
+        self._center = np.array(
+            [self._length_x/2+self._origin[0], self._length_y/2+self._origin[1]]
+        )
         
         # unit length and unit area
         self._shape = (self._npoints_y, self._npoints_x)
@@ -211,13 +216,7 @@ class DensityCanvas:
             raise ValueError("It was not possible to generate that many Gaussians on this canvas")
         self.set_density_from_gaussians(centers, amplitude, variance)
 
-    def set_lattice(self, lattice: Lattice, mode="fixed"):
-        """
-        Possible modes are:
-        'center': the center of mass of the lattice becomes the center of the canvas
-        'origin': the (0,0) lattice cooridnate becomes the origin of the canvas
-        'fixed': the lattice coordinates are kept unchanged
-        """
+    def set_lattice(self, lattice: Lattice, centering=True):
         self.clear_lattice()
         self.clear_pubo()
         if self._length_x < lattice._length_x:
@@ -226,18 +225,9 @@ class DensityCanvas:
             raise ValueError("The lattice does not fit in the canvans along the y direction")
         self._lattice = lattice
         
-        if mode == "center":
-            shift = self._origin+np.array([
-                self._length_x-lattice._length_x, self._length_y-lattice._length_y
-            ])/2
-        elif mode == "origin":
-            shift = self._origin
-        elif mode =="fixed":
-            shift = np.zeros(2)
-        else:
-            raise ValueError("The lattice set mode is not recognized")
-        
+        shift = self._center - lattice._center if centering else np.zeros(2)
         self._lattice._coords += shift
+        
         try:
             self._lattice._history = [np.array(h)+shift for h in self._lattice._history]
         except AttributeError:
@@ -245,7 +235,7 @@ class DensityCanvas:
 
     def set_rectangular_lattice(self, num_x, num_y, spacing):
         lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
-        self.set_lattice(lattice, mode='center')
+        self.set_lattice(lattice, centering=True)
 
     def set_poisson_disk_lattice(self, spacing: tuple):
         lattice = Lattice.poisson_disk(
@@ -253,7 +243,7 @@ class DensityCanvas:
             length=(self._length_x, self._length_y),
             spacing=spacing,
         )
-        self.set_lattice(lattice, mode='origin')
+        self.set_lattice(lattice, centering=True)
     
     def clear_lattice(self):
         try:
@@ -261,10 +251,23 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def lattice_dynamics(self, spacing: numbers.Number, T: numbers.Number = 100, dt: numbers.Number = 0.1, save_history=False, viscosity=0):
-        lattice1 = Lattice(self._lattice._coords - self._origin)
-        lattice1.dynamics(self._density, (self._length_x, self._length_y), spacing, T, dt, save_history, viscosity)
-        self.set_lattice(lattice1)
+    def lattice_dynamics(self, spacing: numbers.Number, T: numbers.Number = 1000, dt: numbers.Number = 1, save_history=False, viscosity=0.1, centering=True):
+        self._lattice._coords -= self._center - self._lattice._center if centering else np.zeros(2)
+        self._lattice.dynamics(self._density, (self._length_x, self._length_y), spacing, T, dt, save_history, viscosity)
+        self._lattice._coords += self._center - self._lattice._center if centering else np.zeros(2)
+        if save_history:
+            for h in self._lattice._history:
+                for c in h:
+                    c += self._center - self._lattice._center if centering else np.zeros(2)
+        try:
+            self.calculate_pubo_coefficients(
+                p=self._pubo["p"],
+                params=self._pubo["params"],
+                high=self._pubo["high"],
+                low=self._pubo["low"],
+            )
+        except AttributeError:
+            pass
         
     def calculate_pubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None):
         """ Calcuates the coefficients of the cost function.
@@ -337,11 +340,19 @@ class DensityCanvas:
             linear = self._pubo["coeffs"][1]
         except AttributeError:
             raise AttributeError("Coefficients need to be calculated before decimation")
+        except KeyError:
+            raise AttributeError("Linear coefficients need to be calculated before decimation")
         
         new_coords = [c for i,c in enumerate(lattice._coords) if linear[(i,)] < 0]
-        new_lattice = Lattice(np.array(new_coords), lattice_type=f'{self._lattice._lattice_type}(decimated)')
+        new_lattice = Lattice(
+            np.array(new_coords),
+            length_x = lattice._length_x,
+            length_y = lattice._length_y,
+            center = lattice._center,
+            lattice_type=f'{lattice._lattice_type}(decimated)'
+        )
         pubo = self._pubo
-        self.set_lattice(new_lattice)
+        self.set_lattice(new_lattice, centering=False)
         self.calculate_pubo_coefficients(
             p=pubo["p"],
             params=pubo["params"],
@@ -394,7 +405,7 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
             
-    def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False, lattice_history=False, labels=True):
+    def plotting_objects(self, figsize=(10,8), draw_centers=False, draw_lattice=False, lattice_history=False, labels=True, draw_connections=False):
         fig, ax = plt.subplots(figsize=figsize)
         ax.set_box_aspect(self._length_y/self._length_x)
         c = ax.pcolormesh(self._X, self._Y, self._density, cmap='viridis')
@@ -418,11 +429,25 @@ class DensityCanvas:
                 ax.scatter(self._centers[:,0], self._centers[:,1], color='red', marker="x", s=120)
             except AttributeError:
                 print("Centers have not been defined")
+        if draw_connections:
+            try:
+                coords = self._lattice._coords
+                n = len(coords)
+                ref = np.min(np.abs(list(self._pubo["coeffs"][1].values())))
+                interaction = self._pubo["coeffs"][2]
+                for i in range(n):
+                    for j in range(i+1, n):
+                        if interaction[(i,j)] > ref:
+                            ax.plot([coords[i][0], coords[j][0]], [coords[i][1], coords[j][1]], color='k', alpha=.2)
+            except AttributeError:
+                print("Can't draw connections without PUBO coefficients")
+            
+
         ax.set_xlabel('x-axis')
         ax.set_ylabel('y-axis')
         fig.colorbar(c)
         return fig, ax
     
-    def draw(self, figsize=(10,8), draw_centers=False, draw_lattice=False, lattice_history=False, labels=True):
-        fig, ax = self.plotting_objects(figsize, draw_centers, draw_lattice, lattice_history, labels)
+    def draw(self, figsize=(10,8), draw_centers=False, draw_lattice=False, lattice_history=False, labels=True, draw_connections=False):
+        fig, ax = self.plotting_objects(figsize, draw_centers, draw_lattice, lattice_history, labels, draw_connections)
         plt.show()

@@ -35,6 +35,10 @@ class Lattice:
         except KeyError:
             self._length_y = emb.find_maximal_distance(self._coords[:,1])
         try:
+            self._center = kwargs['center']
+        except KeyError:
+            self._center = np.array([self._length_x/2, self._length_y/2])
+        try:
             self._lattice_type = kwargs['lattice_type']
         except KeyError:
             self._lattice_type = "custom"
@@ -56,8 +60,10 @@ class Lattice:
         for xc in x_coords:
             for yc in y_coords:
                 coords.append([xc, yc])
+
+        center = np.array([length_x/2, length_y/2])
        
-        return cls(np.array(coords, dtype=float), min_spacing=spacing, length_x=length_x, length_y=length_y, type="rectangular")
+        return cls(np.array(coords, dtype=float), min_spacing=spacing, length_x=length_x, length_y=length_y, center=center, type="rectangular")
 
     @classmethod
     def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000):
@@ -137,8 +143,10 @@ class Lattice:
             if not placed:
                 # after 30 tries, no point could be placed around i. remove it from the active queue
                 queue.remove(i)
+
+            center = np.array([length_x/2, length_y/2])
         
-        return cls(np.array(coords, dtype=float), type="poisson_disk")
+        return cls(np.array(coords, dtype=float), center=center, type="poisson_disk")
 
 
     def dynamics(self, density: ArrayLike, length: tuple, spacing: numbers.Number, T: numbers.Number = 1000, dt: numbers.Number = 1, save_history=False, viscosity=0.1):
