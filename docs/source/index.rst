@@ -6,10 +6,12 @@
 Welcome to aquapointer's documentation!
 =======================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
+---
+maxdepth: 2
+caption: Contents
+hidden: true
+---
+apidoc.rst
 
 
 Indices and tables
