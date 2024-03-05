@@ -321,6 +321,9 @@ class DensityCanvas:
             "high": high,
             "low": low
         }
+
+    def get_linear_coefficients(self):
+        return np.array(list(self._pubo["coeffs"][1].values()))
     
     def clear_pubo(self):
         try:
