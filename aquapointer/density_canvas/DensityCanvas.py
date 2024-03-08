@@ -227,6 +227,9 @@ class DensityCanvas:
         
         shift = self._center - lattice._center if centering else np.zeros(2)
         self._lattice._coords += shift
+        self._lattice._length_x = self._length_x
+        self._lattice._length_y = self._length_y
+        self._lattice._center = (self._length_x/2, self._length_y/2)
         
         try:
             self._lattice._history = [np.array(h)+shift for h in self._lattice._history]
@@ -353,6 +356,41 @@ class DensityCanvas:
             length_y = lattice._length_y,
             center = lattice._center,
             lattice_type=f'{lattice._lattice_type}(decimated)'
+        )
+        pubo = self._pubo
+        self.set_lattice(new_lattice, centering=False)
+        self.calculate_pubo_coefficients(
+            p=pubo["p"],
+            params=pubo["params"],
+            high=pubo["high"],
+            low=pubo["low"],
+        )
+        
+    def force_lattice_size(self, n: int):
+        # check that lattice exists
+        try:
+            lattice = self._lattice
+        except AttributeError:
+            raise AttributeError("Lattice needs to be defined in order to decimate it")
+        
+        # check that coefficients have been calculated
+        try:
+            linear = self._pubo["coeffs"][1]
+        except AttributeError:
+            raise AttributeError("Coefficients need to be calculated before decimation")
+        except KeyError:
+            raise AttributeError("Linear coefficients need to be calculated before decimation")
+
+        # find the linear coefficient of the first point to cut 
+        threshold_value = sorted(list(linear.values()))[n]
+
+        new_coords = [c for i,c in enumerate(lattice._coords) if linear[(i,)] < threshold_value]
+        new_lattice = Lattice(
+            np.array(new_coords),
+            length_x = lattice._length_x,
+            length_y = lattice._length_y,
+            center = lattice._center,
+            lattice_type=f'{lattice._lattice_type}(forced)'
         )
         pubo = self._pubo
         self.set_lattice(new_lattice, centering=False)
