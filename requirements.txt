@@ -3,7 +3,8 @@ jupyter
 pulser
 numpy
 scipy
-gridData
+GridDataFormats
 numba
 openqaoa
 pylatexenc
+
