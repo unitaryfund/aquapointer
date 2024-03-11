@@ -215,12 +215,13 @@ def crop_slices(
     return cropped_points, cropped_densities
 
 
-# def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
-#     c = -point.dot(normal / norm(normal))
-#     x, y = np.meshgrid(range(20), range(20))
-#     z = (-normal[0] * x - normal[1] * y - c) / normal[2]
+def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
+    c = -point.dot(normal / norm(normal))
+    x = range(20)
+    y = range(20)
+    z = (-normal[0] * x - normal[1] * y - c) / normal[2]
 
-#     ax = plt.figure().add_subplot(projection="3d")
-#     ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=True)
-#     plt.show()
-#     return
+    ax = plt.figure().add_subplot(projection="3d")
+    ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=True)
+    plt.show()
+    return
