@@ -10,9 +10,9 @@ from aquapointer.digital.qubo_utils import gaussian, gaussian_mixture, gamma, Vi
 
 class Qubo:
 
-    def __init__(self, loaddata: LoadData) -> None:
-        self.ld = loaddata
-        self.qubo_matrices = self.get_qubo_matrices(densities=self.ld.densities, rescaled_positions=self.ld.rescaled_register_positions)
+    def __init__(self, densities, rescaled_register_positions) -> None:
+        
+        self.qubo_matrices = self.get_qubo_matrices(densities=densities, rescaled_positions=rescaled_register_positions)
         hamiltonians = [self.get_ising_hamiltonian(qubo=qubo) for qubo in self.qubo_matrices]
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
 
