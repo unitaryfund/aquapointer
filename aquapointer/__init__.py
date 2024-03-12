@@ -4,4 +4,4 @@
 # LICENSE file in the root directory of this source tree.
 
 from aquapointer import analog, analog_digital, density_canvas, digital, slicing
-from aquapointer.analog_digital import processorfrom aquapointer.analog import analog, density_mapping, qubo_solution, utils
+from aquapointer.analog_digital import processor

@@ -8,6 +8,6 @@ qiskit_algorithms
 pulser
 numpy
 scipy
-gridData
+GridDataFormats
 numba
 openqaoa
