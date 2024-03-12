@@ -373,6 +373,8 @@ class DensityCanvas:
         except AttributeError:
             raise AttributeError("Lattice needs to be defined in order to decimate it")
         
+        size = min((len(lattice._coords), n))
+        
         # check that coefficients have been calculated
         try:
             linear = self._pubo["coeffs"][1]
@@ -382,7 +384,7 @@ class DensityCanvas:
             raise AttributeError("Linear coefficients need to be calculated before decimation")
 
         # find the linear coefficient of the first point to cut 
-        threshold_value = sorted(list(linear.values()))[n]
+        threshold_value = sorted(list(linear.values()))[size]
 
         new_coords = [c for i,c in enumerate(lattice._coords) if linear[(i,)] < threshold_value]
         new_lattice = Lattice(
@@ -429,7 +431,7 @@ class DensityCanvas:
                 if np.any(bits[list(idx)] == 0):
                     continue
                 cost += coeffs[i][idx]
-        return cost
+        return float(cost)
     
     def calculate_bitstring_cost_from_distance(self, bitstring: Union[str, ArrayLike], mixture_params: ArrayLike, distance: Callable, **kwargs) -> numbers.Number:
         try:
