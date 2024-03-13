@@ -8,7 +8,7 @@ from typing import List, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from gridData import Grid
+from griddata import Grid
 from numpy.linalg import norm
 from numpy.typing import NDArray
 

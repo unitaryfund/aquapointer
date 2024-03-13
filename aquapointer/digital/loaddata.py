@@ -14,17 +14,25 @@ DENS_DIR = "/data/MUP1/MUP1_logfilter8_slices/"
 PP_DIR = "/data/MUP1/MUP1_logfilter8_points/"
 REG_DIR = "/registers/"
 
-RISM3D_DIR = "/data/3D-RISM_densities/"
+RISM3D_DIR = "../data/3D-RISM_densities/"
 
 class LoadData:
 
     def __init__(self, protein: str) -> None:
+        self.d_list = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
+
         if protein == 'MUP1':
-            self.d_list = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
             self.densities = self.load_density_slices(path=BASE_PATH + DENS_DIR)
             self.plane_points = self.load_plane_points(path=BASE_PATH + PP_DIR)
+            
             self.register_positions = self.load_register_positions(path=BASE_PATH + REG_DIR)
             self.rescaled_register_positions = self.load_rescaled_register_positions(path=BASE_PATH + REG_DIR)
+            
+        else:
+            with open(REG_DIR+protein+'/rescaled_positions.pkl', 'rb') as handle:
+                self.rescaled_register_positions = pickle.load(handle)
+            with open(RISM3D_DIR + protein + '/slices.pkl', 'rb') as handle:
+                self.densities = pickle.load(handle)
             
 
     def load_density_slices(self, path: str) -> list[np.ndarray]:
@@ -46,8 +54,7 @@ class LoadData:
                 densities.append(pickle.load(file_in))
                 
         return densities
-    
-    # def 
+
 
     def load_plane_points(self, path: str) -> list[np.ndarray]:
         r"""Load slice coordinates (these are 3D coordinates in
