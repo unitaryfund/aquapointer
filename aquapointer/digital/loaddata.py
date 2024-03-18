@@ -29,7 +29,7 @@ class LoadData:
             self.rescaled_register_positions = self.load_rescaled_register_positions(path=BASE_PATH + REG_DIR)
             
         else:
-            with open(REG_DIR+protein+'/rescaled_positions.pkl', 'rb') as handle:
+            with open(REG_DIR + protein + '/rescaled_positions.pkl', 'rb') as handle:
                 self.rescaled_register_positions = pickle.load(handle)
             with open(RISM3D_DIR + protein + '/slices.pkl', 'rb') as handle:
                 self.densities = pickle.load(handle)
