@@ -9,3 +9,5 @@ pulser
 numpy
 scipy
 GridDataFormats
+numba
+openqaoa
