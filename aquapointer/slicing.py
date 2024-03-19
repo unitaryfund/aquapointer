@@ -3,7 +3,7 @@
 # This source code is licensed under the GPL license (v3) found in the
 # LICENSE file in the root directory of this source tree.
 
-from itertools import groupby
+from itertools import groupby, permutations
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
@@ -195,3 +195,32 @@ def density_point_boundaries(density_grid: Grid) -> List[NDArray]:
     ) + density_origin(density_grid)
 
 
+def crop_slices(
+    points: list[NDArray],
+    densities: list[NDArray],
+    coordinate_bounds: list[list[NDArray]],
+):
+    cropped_points = []
+    cropped_densities = []
+    """Crops point and density slice arrays by user-specified 2D coordinates."""
+    if len(coordinate_bounds) < len(points):
+        coordinate_bounds  *= len(points)
+    for i, (point_array, density_array) in enumerate(zip(points, densities)):
+        indexes = [
+        np.argmin(norm(point_array - c)) for c in coordinate_bounds[i]
+    ]
+        cropped_points.append(point_array[indexes[:2], indexes[2:]])
+        cropped_densities.append(density_array[indexes[:2], indexes[2:]])
+        
+    return cropped_points, cropped_densities
+
+
+# def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
+#     c = -point.dot(normal / norm(normal))
+#     x, y = np.meshgrid(range(20), range(20))
+#     z = (-normal[0] * x - normal[1] * y - c) / normal[2]
+
+#     ax = plt.figure().add_subplot(projection="3d")
+#     ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=True)
+#     plt.show()
+#     return
