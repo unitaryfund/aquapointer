@@ -6,4 +6,3 @@
 
 from aquapointer.analog import density_mapping, qubo_solution, water_placement, utils
 from aquapointer.analog_digital import processor
-from aquapointer import density_canvas
