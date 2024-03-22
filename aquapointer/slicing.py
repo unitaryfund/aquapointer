@@ -11,7 +11,7 @@ import numpy as np
 from gridData import Grid
 from numpy.linalg import norm
 from numpy.typing import NDArray
-from aquapointer.density_canvas import DensityCanvas
+from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 
 
 def density_file_to_grid(filename: str) -> Grid:
@@ -21,7 +21,7 @@ def density_file_to_grid(filename: str) -> Grid:
 
 def density_slices_by_axis(
     density_grid: Grid, axis: NDArray, distances: NDArray
-) -> Tuple[List[NDArray]]:
+) -> List[DensityCanvas]:
     """Slice 3D density grid at specified intervals along a specified axis
     and flatten slices into 2D density arrays positioned at each midplane."""
     origin = density_origin(density_grid)
@@ -32,7 +32,7 @@ def density_slices_by_axis(
 def density_slices_by_plane(
     density_grid: Grid,
     slicing_planes: List[Tuple[NDArray, NDArray]],
-) -> Tuple[List[NDArray]]:
+) -> List[DensityCanvas]:
     """Slice 3D density grid by planes specified by a list of point and axis
     pairs and flatten slices into 2D density arrays positioned at each
     midplane."""
@@ -100,19 +100,18 @@ def density_slices_by_plane(
         )
         density_lists[s].append(density)
 
-    points = []
-    densities = []
+    density_canvases = []
+ 
     for i in range(len(idx_lists)):
         points_array, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
         )
-        points.append(points_array)
-        densities.append(density_array)
-
-        # density_canvas = DensityCanvas(origin, delta, delta, npoints_x, npoints_y)
-        # density_canvas.set_density_from_slice(density_array)
-
-    return points, densities  # density_canvases
+        length_x = np.mean(points_array[0][:][:] - points_array[-1][0][0]) / points_array.shape[0]
+        length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
+        dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
+        dc.set_density_from_slice(density_array)
+        density_canvases.append(dc)
+    return density_canvases
 
 
 def _shape_slice(points: NDArray, density, normal: NDArray):
