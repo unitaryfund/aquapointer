@@ -239,6 +239,14 @@ class DensityCanvas:
     def set_rectangular_lattice(self, num_x, num_y, spacing):
         lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
         self.set_lattice(lattice, centering=True)
+    
+    def set_triangular_lattice(self, nrows, ncols, spacing):
+        lattice = Lattice.triangular(nrows=nrows, ncols=ncols, spacing=spacing)
+        self.set_lattice(lattice, centering=True)
+    
+    def set_hexagonal_lattice(self, nrows, ncols, spacing):
+        lattice = Lattice.hexagonal(nrows=nrows, ncols=ncols, spacing=spacing)
+        self.set_lattice(lattice, centering=True)
 
     def set_poisson_disk_lattice(self, spacing: tuple):
         lattice = Lattice.poisson_disk(
