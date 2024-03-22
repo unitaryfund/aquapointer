@@ -10,8 +10,16 @@ from qiskit import QuantumCircuit
 from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
+
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray, prob_opt_sol: bool) -> None:
+    def __init__(
+        self,
+        qubo: np.ndarray,
+        ansatz: QuantumCircuit,
+        sampler: BackendSampler,
+        params: np.ndarray,
+        prob_opt_sol: bool,
+    ) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
         self.sampler = sampler
@@ -19,29 +27,38 @@ class VQE:
         if params.any():
             self.params = params
         else:
-            self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
+            self.params = np.array([np.random.random()] * self.ansatz.num_parameters)
 
         self.r = 0.1
         self.prob_opt_sol = prob_opt_sol
         self.history = []
 
     def run(self, alpha: float, maxiter: int, method="COBYLA"):
-        r""" Runs the minization.
+        r"""Runs the minization.
 
         Args:
             alpha: Confidence level.
             maxiter: Maximum number of iterations.
             method: Method for updating parameters.
-        
+
         Returns:
             Result from running scipy.optimize.minimize.
         """
-        res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
+        res = minimize(
+            self.cvar_energy,
+            self.params,
+            args=(alpha,),
+            method=method,
+            tol=1e-8,
+            options={"maxiter": maxiter},
+        )
         self.params = res.x
         return res
-           
-    def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
-        r""" Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
+
+    def _compute_cvar(
+        self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float
+    ) -> float:
+        r"""Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
 
         Args:
             probabilities: List or array of probabilities
@@ -62,21 +79,21 @@ class VQE:
         exceed_index = np.argmax(cumulative_prob >= confidence_level)
 
         # Calculate CVaR
-        cvar_values = sorted_values[:exceed_index + 1]
-        cvar_probabilities = sorted_probabilities[:exceed_index + 1]
+        cvar_values = sorted_values[: exceed_index + 1]
+        cvar_probabilities = sorted_probabilities[: exceed_index + 1]
 
         cvar = np.sum(cvar_values * cvar_probabilities) / np.sum(cvar_probabilities)
 
         return cvar
-    
+
     def cvar_energy(self, params: np.ndarray, alpha: float) -> float:
-        r""" Function that takes parameters to bind to the ansatz and confidence level
+        r"""Function that takes parameters to bind to the ansatz and confidence level
         alpha, to compute the cvar energy (by sampling the ansatz and computing cvar).
-        
+
         Args:
             params: numpy array of parameters for the ansatz.
             alpha: Confidence level.
-        
+
         Returns:
             CVaR energy.
         """
@@ -87,13 +104,13 @@ class VQE:
         # Sample ansatz
         samp_dist = self.sampler.run(qc, shots=int(1e4)).result().quasi_dists[0]
 
-        samp_dist_binary=samp_dist.binary_probabilities()
+        samp_dist_binary = samp_dist.binary_probabilities()
 
         correct_dist = {}
         for key in samp_dist_binary.keys():
             reverse_key = key[::-1]
-            keynot = [(int(b)+1)%2 for b in reverse_key]
-            correct_dist[''.join(map(str, keynot))] = samp_dist_binary[key]
+            keynot = [(int(b) + 1) % 2 for b in reverse_key]
+            correct_dist["".join(map(str, keynot))] = samp_dist_binary[key]
 
         prob_energy = []
         bitstrings = []
@@ -128,14 +145,14 @@ class VQE:
         cvar_energy = self._compute_cvar(prob_energy[:, 0], prob_energy[:, 1], alpha)
 
         top_opt_prob = np.sum(sorted_probs[eps_rel_energies])
-        avg_top_energies = np.mean(sorted_probs[eps_rel_energies]*sorted_values[eps_rel_energies])
+        avg_top_energies = np.mean(
+            sorted_probs[eps_rel_energies] * sorted_values[eps_rel_energies]
+        )
 
         # save intermediate optimal bitsting and energy to self.history
         if self.prob_opt_sol:
             self.history.append([opt_b, opt_prob, opt_energy])
         else:
             self.history.append([top_opt_prob, avg_top_energies])
-
-
 
         return cvar_energy

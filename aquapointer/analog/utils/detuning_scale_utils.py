@@ -21,7 +21,7 @@ def gaussian(var, m, x, y):
     distributions centered at `mean[0]`, `mean[1]`, ...
     and variance `var`
     """
-    return np.exp(-((x-m[0])**2 +(y-m[1])**2)/(2*var))/(2*np.pi*var)
+    return np.exp(-((x - m[0]) ** 2 + (y - m[1]) ** 2) / (2 * var)) / (2 * np.pi * var)
 
 
 def gaussian_mixture(shape, var, means):
@@ -29,7 +29,7 @@ def gaussian_mixture(shape, var, means):
     for i in range(len(res)):
         for j in range(len(res[0])):
             for mean in means:
-                res[j,i] += gaussian(var, mean, i, j)
+                res[j, i] += gaussian(var, mean, i, j)
     return res
 
 
