@@ -56,7 +56,6 @@ class LoadData:
         for density in self.densities:    
             canvas.set_density_from_slice(density)
             canvas.set_poisson_disk_lattice(spacing=(2,10))
-            # canvas.decimate_lattice()
             rescaled_positions.append(canvas._lattice._coords)
 
         return rescaled_positions

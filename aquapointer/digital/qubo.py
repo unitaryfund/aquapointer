@@ -18,12 +18,12 @@ class Qubo:
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
 
     def get_qubo_matrices_canvas(self, densities: list[np.ndarray]) -> list[np.ndarray]:
-        estimated_variance = 25
-        estimated_amplitude = 13
+        estimated_variance = 50
+        estimated_amplitude = 6
 
         origin = (-20, -20)
         length = 40
-        npoints = 80
+        npoints = densities[0].shape[0]
         canvas = DensityCanvas(
             origin=origin,
             length_x=length,
@@ -34,12 +34,13 @@ class Qubo:
         qubo_matrices = []
         for density in densities:    
             canvas.set_density_from_slice(density)
-            canvas.set_poisson_disk_lattice(spacing=(2,10))
+            # canvas.set_poisson_disk_lattice(spacing=(2,10))
+            canvas.set_rectangular_lattice(num_x=8, num_y=8, spacing=4)
             canvas.calculate_pubo_coefficients(
                 p = 2, #order of the PUBO, p=2 effectively creates a QUBO
                 params = [estimated_amplitude, estimated_variance]
             )
-            canvas.decimate_lattice()
+            # canvas.decimate_lattice()
 
             coefficients = canvas._pubo["coeffs"]
             linear = coefficients[1]
