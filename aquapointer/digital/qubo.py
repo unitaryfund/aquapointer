@@ -5,16 +5,59 @@
 
 import numpy as np
 from qiskit.quantum_info import SparsePauliOp
-from aquapointer.digital.loaddata import LoadData
 from aquapointer.digital.qubo_utils import gaussian, gaussian_mixture, gamma, Vij
+from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 
 class Qubo:
 
     def __init__(self, densities, rescaled_register_positions) -> None:
         
-        self.qubo_matrices = self.get_qubo_matrices(densities=densities, rescaled_positions=rescaled_register_positions)
+        # self.qubo_matrices = self.get_qubo_matrices(densities=densities, rescaled_positions=rescaled_register_positions)
+        self.qubo_matrices = self.get_qubo_matrices_canvas(densities=densities)
         hamiltonians = [self.get_ising_hamiltonian(qubo=qubo) for qubo in self.qubo_matrices]
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
+
+    def get_qubo_matrices_canvas(self, densities: list[np.ndarray]) -> list[np.ndarray]:
+        estimated_variance = 25
+        estimated_amplitude = 13
+
+        origin = (-20, -20)
+        length = 40
+        npoints = 80
+        canvas = DensityCanvas(
+            origin=origin,
+            length_x=length,
+            length_y=length,
+            npoints_x=npoints,
+            npoints_y=npoints,
+        )
+        qubo_matrices = []
+        for density in densities:    
+            canvas.set_density_from_slice(density)
+            canvas.set_poisson_disk_lattice(spacing=(2,10))
+            canvas.calculate_pubo_coefficients(
+                p = 2, #order of the PUBO, p=2 effectively creates a QUBO
+                params = [estimated_amplitude, estimated_variance]
+            )
+            canvas.decimate_lattice()
+
+            coefficients = canvas._pubo["coeffs"]
+            linear = coefficients[1]
+            quadratic = coefficients[2]
+
+            qubo = np.zeros((len(linear), len(linear)))
+            
+            for i, key in enumerate(linear.keys()):
+                qubo[i][i] = linear[key]
+
+            for key in quadratic.keys():
+                qubo[key] = quadratic[key]
+                qubo[key[::-1]] = quadratic[key]
+
+            qubo_matrices.append(qubo)
+        
+        return qubo_matrices
+
 
     def get_qubo_matrices(self, densities: list[np.ndarray], rescaled_positions: list[np.ndarray]) -> list[np.ndarray]:
         r""" Given the density slices and rescaled positions of the registers,
