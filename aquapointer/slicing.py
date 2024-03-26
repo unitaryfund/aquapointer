@@ -110,6 +110,7 @@ def density_slices_by_plane(
         length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
         dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
         dc.set_density_from_slice(density_array)
+        dc.rotate_lattice(points_array.shape[0], points_array.shape[1], , vector)
         density_canvases.append(dc)
     return density_canvases
 

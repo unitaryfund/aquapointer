@@ -623,6 +623,7 @@ class DensityCanvas:
     def plotting_objects(
         self,
         figsize=(10, 8),
+        title = None,
         draw_centers=False,
         draw_lattice=False,
         lattice_history=False,
@@ -686,12 +687,15 @@ class DensityCanvas:
 
         ax.set_xlabel("x-axis")
         ax.set_ylabel("y-axis")
+        if title:
+            ax.set_title(title)
         fig.colorbar(c)
         return fig, ax
 
     def draw(
         self,
         figsize=(10, 8),
+        title=None,
         draw_centers=False,
         draw_lattice=False,
         lattice_history=False,
@@ -700,6 +704,7 @@ class DensityCanvas:
     ):
         fig, ax = self.plotting_objects(
             figsize,
+            title,
             draw_centers,
             draw_lattice,
             lattice_history,
