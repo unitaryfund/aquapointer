@@ -1,0 +1,13 @@
+qiskit
+jupyter
+qiskit_sphinx_theme
+matplotlib
+qiskit[visualization]
+qiskit_aer
+qiskit_algorithms
+pulser
+numpy
+scipy
+GridDataFormats
+numba
+openqaoa
