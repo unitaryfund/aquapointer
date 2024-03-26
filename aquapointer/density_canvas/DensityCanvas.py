@@ -51,7 +51,7 @@ class DensityCanvas:
         )
 
         # unit length and unit area
-        self._shape = (self._npoints_y, self._npoints_x)
+        self._shape = (self._npoints_x, self._npoints_y)
         self._dx = self._length_x / self._npoints_x
         self._dy = self._length_y / self._npoints_y
         self._dA = self._dx * self._dy
