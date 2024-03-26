@@ -30,27 +30,25 @@ def find_water_positions(
     ] = default_cost,
     location_clustering: Optional[Callable[[List[List[float]]], List[Any]]] = None,
 ) -> List[List[float]]:
+
     r"""Finds the locations of water molecules in a protein cavity from 2-D
     arrays of density values of the cavity.
 
     Args:
-        densities: List of density slices of the protein cavity as 2-D arrays
-            of density values.
-        points: List of arrays containing coordinates corresponding to each
-            element of the density arrays.
+        densities: List of density slices of the protein cavity as 2-D arrays of density values.
+        points: List of arrays containing coordinates corresponding to each element of the density arrays.
         executor: Function that executes a pulse sequence on a quantum backend.
-        processor_configs: List of ``Processor`` objects storing settings for
-            running on a quantum backend.
-        num_samples: Number of times to execute the quantum experiment or
-            simulation on the backend.
+        processor_configs: List of ``Processor`` objects storing settings for running on a quantum backend.
+        num_samples: Number of times to execute the quantum experiment or simulation on the backend.
         qubo_cost: Cost function to be optimized in the QUBO.
-        location_clustering: Optional function for merging duplicate locations
-            (typically identified in different layers).
+        location_clustering: Optional function for merging duplicate locations (typically identified in different layers).
+
 
     Returns:
         List of 3-D coordinates of the locations of water molecules in the
             protein cavity.
     """
+    
     bitstrings = []
     for k, d in enumerate(densities):
         params = [58, 0, 0, 48.2]
@@ -83,7 +81,8 @@ def find_water_positions(
 
 
 def location_clustering_kmeans(water_positions: List[List[float]]) -> List[List[float]]:
-    r"""Takes a list of 3-D coordinates of the locations of water molecules in the
+    r"""
+    Takes a list of 3-D coordinates of the locations of water molecules in the
     protein cavity and merges each set of duplicate locations into a
     single location.
     """
