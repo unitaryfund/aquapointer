@@ -5,22 +5,61 @@
 
 import numpy as np
 import pickle
-
+from aquapointer.slicing import density_file_to_grid, density_slices_by_axis
 from pathlib import Path
+from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 
 BASE_PATH = str(Path.cwd().parent)
 DENS_DIR = "/data/MUP1/MUP1_logfilter8_slices/"
 PP_DIR = "/data/MUP1/MUP1_logfilter8_points/"
 REG_DIR = "/registers/"
 
+RISM3D_DIR = "../data/3D-RISM_densities/"
+
 class LoadData:
 
-    def __init__(self) -> None:
+    def __init__(self, protein: str) -> None:
         self.d_list = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
-        self.densities = self.load_density_slices(path=BASE_PATH + DENS_DIR)
-        self.plane_points = self.load_plane_points(path=BASE_PATH + PP_DIR)
-        self.register_positions = self.load_register_positions(path=BASE_PATH + REG_DIR)
-        self.rescaled_register_positions = self.load_rescaled_register_positions(path=BASE_PATH + REG_DIR)
+
+        if protein == 'MUP1':
+            self.densities = self.load_density_slices(path=BASE_PATH + DENS_DIR)
+            self.plane_points = self.load_plane_points(path=BASE_PATH + PP_DIR)
+            
+            self.register_positions = self.load_register_positions(path=BASE_PATH + REG_DIR)
+            self.rescaled_register_positions = self.load_rescaled_register_positions(path=BASE_PATH + REG_DIR)
+            
+        elif protein in ["1NNC", "bromoD", "dehydratase", "HIV1", "test_from_Watsite"]:
+            grid = density_file_to_grid("../data/3D-RISM_densities/test_from_Watsite/prot_3drism.O.1.dx")
+            self.plane_points, self.densities = density_slices_by_axis(grid, axis=np.array([0, 0, 1]), distances=np.array([10, 20, 30]))
+            self.rescaled_register_positions = self.get_rescaled_register_positions()
+            # with open(RISM3D_DIR + protein + '/reg_rescaled_positions.pkl', 'rb') as handle:
+            #     self.rescaled_register_positions = pickle.load(handle)
+            # with open(RISM3D_DIR + protein + '/slices.pkl', 'rb') as handle:
+            #     self.densities = pickle.load(handle)
+
+        else:
+            print(f"there is no 3D RISM data for {protein}")
+
+            
+    def get_rescaled_register_positions(self):
+        origin = (-20, -20)
+        length = 40
+        npoints = 80
+        canvas = DensityCanvas(
+            origin=origin,
+            length_x=length,
+            length_y=length,
+            npoints_x=npoints,
+            npoints_y=npoints,
+        )
+        rescaled_positions = []
+        for density in self.densities:    
+            canvas.set_density_from_slice(density)
+            canvas.set_poisson_disk_lattice(spacing=(2,10))
+            rescaled_positions.append(canvas._lattice._coords)
+
+        return rescaled_positions
+
 
     def load_density_slices(self, path: str) -> list[np.ndarray]:
         r"""The 3D-RISM density slices are saved as pickled files in the folder MUP1.
@@ -41,6 +80,7 @@ class LoadData:
                 densities.append(pickle.load(file_in))
                 
         return densities
+
 
     def load_plane_points(self, path: str) -> list[np.ndarray]:
         r"""Load slice coordinates (these are 3D coordinates in

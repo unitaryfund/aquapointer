@@ -3,7 +3,7 @@
 # This source code is licensed under the GPL license (v3) found in the
 # LICENSE file in the root directory of this source tree.
 
-from itertools import groupby
+from itertools import groupby, product
 from typing import List, Tuple
 
 import matplotlib.pyplot as plt
@@ -11,6 +11,7 @@ import numpy as np
 from gridData import Grid
 from numpy.linalg import norm
 from numpy.typing import NDArray
+from aquapointer.density_canvas import DensityCanvas
 
 
 def density_file_to_grid(filename: str) -> Grid:
@@ -108,7 +109,10 @@ def density_slices_by_plane(
         points.append(points_array)
         densities.append(density_array)
 
-    return points, densities
+        # density_canvas = DensityCanvas(origin, delta, delta, npoints_x, npoints_y)
+        # density_canvas.set_density_from_slice(density_array)
+
+    return points, densities  # density_canvases
 
 
 def _shape_slice(points: NDArray, density, normal: NDArray):
@@ -195,3 +199,60 @@ def density_point_boundaries(density_grid: Grid) -> List[NDArray]:
     ) + density_origin(density_grid)
 
 
+def crop_slices(
+    points: List[NDArray],
+    densities: List[NDArray],
+    x_ranges: List[Tuple[float]],
+    y_ranges: List[Tuple[float]],
+):
+    """Crops point and density slice arrays by user-specified 2D coordinates."""
+
+    cropped_points = []
+    cropped_densities = []
+    for xr, yr, p, d in zip(
+        _check_bounds(x_ranges, points),
+        _check_bounds(y_ranges, points),
+        points,
+        densities,
+    ):
+        indexes = []
+        a = np.zeros_like(d)
+        for x, y in list(product(xr, yr))[:-1]:
+            for k, m in np.ndindex(d.shape):
+                a[k, m] = np.linalg.norm(p[k, m, :-1] - (x, y))
+            indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
+
+        cropped_points.append(
+            p[indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1], :]
+        )
+        cropped_densities.append(
+            d[indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1]]
+        )
+
+    return cropped_points, cropped_densities
+
+
+def _check_bounds(bounds, points):
+    """Ensures number of tuples specifying cropping boundaries matches number of slices."""
+    if len(bounds) == 1:
+        coords = bounds * len(points)
+    elif len(bounds) == len(points):
+        coords = bounds
+    else:
+        raise ValueError(
+            """Number of tuples specifying cropping boundaries must match
+            number of slices or be 1."""
+        )
+    return coords
+
+
+def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
+    c = -point.dot(normal / norm(normal))
+    x = range(20)
+    y = range(20)
+    z = (-normal[0] * x - normal[1] * y - c) / normal[2]
+
+    ax = plt.figure().add_subplot(projection="3d")
+    ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=True)
+    plt.show()
+    return
