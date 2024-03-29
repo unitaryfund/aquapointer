@@ -12,8 +12,8 @@ class Qubo:
 
     def __init__(self, densities, rescaled_register_positions) -> None:
         
-        # self.qubo_matrices = self.get_qubo_matrices(densities=densities, rescaled_positions=rescaled_register_positions)
-        self.qubo_matrices = self.get_qubo_matrices_canvas(densities=densities)
+        self.qubo_matrices = self.get_qubo_matrices(densities=densities, rescaled_positions=rescaled_register_positions)
+        # self.qubo_matrices = self.get_qubo_matrices_canvas(densities=densities)
         hamiltonians = [self.get_ising_hamiltonian(qubo=qubo) for qubo in self.qubo_matrices]
         self.qubo_hamiltonian_pairs = list(zip(self.qubo_matrices, hamiltonians))
 
@@ -40,7 +40,6 @@ class Qubo:
                 p = 2, #order of the PUBO, p=2 effectively creates a QUBO
                 params = [estimated_amplitude, estimated_variance]
             )
-            # canvas.decimate_lattice()
 
             coefficients = canvas._pubo["coeffs"]
             linear = coefficients[1]
