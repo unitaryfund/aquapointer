@@ -1,4 +1,3 @@
-import math
 import numbers
 from collections.abc import Callable
 from itertools import product
@@ -51,7 +50,7 @@ class DensityCanvas:
         )
 
         # unit length and unit area
-        self._shape = (self._npoints_x, self._npoints_y)
+        self._shape = (self._npoints_y, self._npoints_x)
         self._dx = self._length_x / self._npoints_x
         self._dy = self._length_y / self._npoints_y
         self._dA = self._dx * self._dy
@@ -236,12 +235,13 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_density_from_slice(self, slice: ArrayLike):
+    def set_density_from_slice(self, slice: ArrayLike, centers: ArrayLike):
         if slice.shape != self._density.shape:
             raise ValueError(f"The slice must have shape {self._density.shape}")
         self.clear_density()
         self.clear_pubo()
         self._density = slice
+        self._centers = centers
         self._empty = False
         self._density_type = "data"
 
@@ -359,15 +359,17 @@ class DensityCanvas:
         a = np.zeros_like(self._density)
         for x, y in list(product(x_range, y_range))[:-1]:
             for k, m in np.ndindex(self._density.shape):
-                a[k, m] = np.linalg.norm(self._lattice._coords[k, m, :-1] - (x, y))
+                a[k, m] = np.linalg.norm(self._centers[k, m, :-1] - (x, y))
             indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
-        cropped_points = self._lattice._coords[
+        cropped_points = self._centers[
             indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1], :
         ]
-        cropped_densities = self._lattice._coords[
+        cropped_density = self._centers[
             indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1]
         ]
-        return cropped_points, cropped_densities
+        self._density = np.zeros_like(cropped_density)
+        self.set_density_from_slice(cropped_density, cropped_points)
+
 
     def lattice_dynamics(
         self,

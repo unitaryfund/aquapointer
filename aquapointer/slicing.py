@@ -109,8 +109,7 @@ def density_slices_by_plane(
         length_x = np.mean(points_array[0][:][:] - points_array[-1][0][0]) / points_array.shape[0]
         length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
         dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
-        dc.set_density_from_slice(density_array)
-        dc.rotate_lattice(points_array.shape[0], points_array.shape[1], , vector)
+        dc.set_density_from_slice(density_array.transpose(), points_array.transpose((1, 0, 2)))
         density_canvases.append(dc)
     return density_canvases
 
@@ -197,53 +196,6 @@ def density_point_boundaries(density_grid: Grid) -> List[NDArray]:
     return density_grid.grid.shape * density_grid.delta.round(
         decimals=10
     ) + density_origin(density_grid)
-
-
-def crop_slices(
-    points: List[NDArray],
-    densities: List[NDArray],
-    x_ranges: List[Tuple[float]],
-    y_ranges: List[Tuple[float]],
-):
-    """Crops point and density slice arrays by user-specified 2D coordinates."""
-
-    cropped_points = []
-    cropped_densities = []
-    for xr, yr, p, d in zip(
-        _check_bounds(x_ranges, points),
-        _check_bounds(y_ranges, points),
-        points,
-        densities,
-    ):
-        indexes = []
-        a = np.zeros_like(d)
-        for x, y in list(product(xr, yr))[:-1]:
-            for k, m in np.ndindex(d.shape):
-                a[k, m] = np.linalg.norm(p[k, m, :-1] - (x, y))
-            indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
-
-        cropped_points.append(
-            p[indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1], :]
-        )
-        cropped_densities.append(
-            d[indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1]]
-        )
-
-    return cropped_points, cropped_densities
-
-
-def _check_bounds(bounds, points):
-    """Ensures number of tuples specifying cropping boundaries matches number of slices."""
-    if len(bounds) == 1:
-        coords = bounds * len(points)
-    elif len(bounds) == len(points):
-        coords = bounds
-    else:
-        raise ValueError(
-            """Number of tuples specifying cropping boundaries must match
-            number of slices or be 1."""
-        )
-    return coords
 
 
 def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
