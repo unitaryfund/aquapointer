@@ -1,3 +1,4 @@
+import array
 import numbers
 from collections.abc import Callable
 from itertools import product
@@ -331,21 +332,21 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_rectangular_lattice(self, num_x, num_y, spacing):
+    def set_rectangular_lattice(self, num_x, num_y, spacing, vector = None):
         lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
         self.set_lattice(lattice, centering=True)
 
-    def set_poisson_disk_lattice(self, spacing: tuple):
+    def set_poisson_disk_lattice(self, spacing: tuple, vector = None):
         lattice = Lattice.poisson_disk(
             density=self._density,
             length=(self._length_x, self._length_y),
             spacing=spacing,
+            vector=vector,
         )
         self.set_lattice(lattice, centering=True)
 
-    def rotate_lattice(self, num_x, num_y, spacing, vector):
-        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
-        self.set_lattice(lattice, centering=True)
+    def set_lattice_rotation(self, vector: ArrayLike):
+        self.lattice_rotation = vector
 
     def clear_lattice(self):
         try:

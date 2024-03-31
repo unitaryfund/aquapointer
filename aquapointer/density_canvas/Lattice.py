@@ -38,6 +38,10 @@ class Lattice:
             self._center = kwargs['center']
         except KeyError:
             self._center = np.array([self._length_x/2, self._length_y/2])
+        try: 
+            self.rotation = kwargs['rotation']
+        except KeyError:
+            self.rotation = None
         try:
             self._lattice_type = kwargs['lattice_type']
         except KeyError:

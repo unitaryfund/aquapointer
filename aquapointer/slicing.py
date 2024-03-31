@@ -110,12 +110,12 @@ def density_slices_by_plane(
         length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
         dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
         dc.set_density_from_slice(density_array.transpose(), points_array.transpose((1, 0, 2)))
+        dc.set_lattice_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
         density_canvases.append(dc)
     return density_canvases
 
 
-def _shape_slice(points: NDArray, density, normal: NDArray):
-    """Arrange lists of coordinates and density values into 2D arrays."""
+def _generate_slice_rotation_matrix(normal: NDArray):
     n = np.cross(np.array([0, 0, 1]), normal)
     n1 = n[0]
     n2 = n[1]
@@ -140,6 +140,11 @@ def _shape_slice(points: NDArray, density, normal: NDArray):
             ],
         ]
     )
+    return Rn
+
+def _shape_slice(points: NDArray, density, normal: NDArray):
+    """Arrange lists of coordinates and density values into 2D arrays."""
+    Rn = _generate_slice_rotation_matrix(normal)
     x_prime = Rn @ np.array([1, 0, 0])
     y_prime = Rn @ np.array([0, 1, 0])
 
