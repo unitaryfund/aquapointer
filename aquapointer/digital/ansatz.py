@@ -32,7 +32,7 @@ def QAOA_ansatz(qubo, warm_start=True, reps=1):
         return qaoa_ansatz
     
     else:
-        qaoa_ansatz = QAOAAnsatz(hamiltonian, reps=reps, initial_state=initial_state)
+        qaoa_ansatz = QAOAAnsatz(hamiltonian, reps=reps)
 
         return qaoa_ansatz
     
