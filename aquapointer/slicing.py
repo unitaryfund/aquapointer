@@ -11,7 +11,7 @@ import numpy as np
 from gridData import Grid
 from numpy.linalg import norm
 from numpy.typing import NDArray
-from aquapointer.density_canvas import DensityCanvas
+from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 
 
 def density_file_to_grid(filename: str) -> Grid:
@@ -21,7 +21,7 @@ def density_file_to_grid(filename: str) -> Grid:
 
 def density_slices_by_axis(
     density_grid: Grid, axis: NDArray, distances: NDArray
-) -> Tuple[List[NDArray]]:
+) -> List[DensityCanvas]:
     """Slice 3D density grid at specified intervals along a specified axis
     and flatten slices into 2D density arrays positioned at each midplane."""
     origin = density_origin(density_grid)
@@ -32,7 +32,7 @@ def density_slices_by_axis(
 def density_slices_by_plane(
     density_grid: Grid,
     slicing_planes: List[Tuple[NDArray, NDArray]],
-) -> Tuple[List[NDArray]]:
+) -> List[DensityCanvas]:
     """Slice 3D density grid by planes specified by a list of point and axis
     pairs and flatten slices into 2D density arrays positioned at each
     midplane."""
@@ -100,23 +100,22 @@ def density_slices_by_plane(
         )
         density_lists[s].append(density)
 
-    points = []
-    densities = []
+    density_canvases = []
+ 
     for i in range(len(idx_lists)):
         points_array, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
         )
-        points.append(points_array)
-        densities.append(density_array)
+        length_x = np.mean(points_array[0][:][:] - points_array[-1][0][0]) / points_array.shape[0]
+        length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
+        dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
+        dc.set_density_from_slice(density_array.transpose(), points_array.transpose((1, 0, 2)))
+        dc.set_lattice_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
+        density_canvases.append(dc)
+    return density_canvases
 
-        # density_canvas = DensityCanvas(origin, delta, delta, npoints_x, npoints_y)
-        # density_canvas.set_density_from_slice(density_array)
 
-    return points, densities  # density_canvases
-
-
-def _shape_slice(points: NDArray, density, normal: NDArray):
-    """Arrange lists of coordinates and density values into 2D arrays."""
+def _generate_slice_rotation_matrix(normal: NDArray):
     n = np.cross(np.array([0, 0, 1]), normal)
     n1 = n[0]
     n2 = n[1]
@@ -141,6 +140,11 @@ def _shape_slice(points: NDArray, density, normal: NDArray):
             ],
         ]
     )
+    return Rn
+
+def _shape_slice(points: NDArray, density, normal: NDArray):
+    """Arrange lists of coordinates and density values into 2D arrays."""
+    Rn = _generate_slice_rotation_matrix(normal)
     x_prime = Rn @ np.array([1, 0, 0])
     y_prime = Rn @ np.array([0, 1, 0])
 
