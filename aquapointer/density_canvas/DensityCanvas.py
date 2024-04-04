@@ -241,8 +241,8 @@ class DensityCanvas:
             raise ValueError(f"The slice must have shape {self._density.shape}")
         self.clear_density()
         self.clear_pubo()
-        self._density = slice
         self._centers = centers
+        self._density = slice
         self._empty = False
         self._density_type = "data"
 
@@ -360,18 +360,16 @@ class DensityCanvas:
         """Crops lattice and density slice by user-specified 2D coordinates."""
         indexes = []
         a = np.zeros_like(self._density)
-        for x, y in list(product(x_range, y_range))[:-1]:
+        for y, x in list(product(y_range, x_range))[:-1]:
             for k, m in np.ndindex(self._density.shape):
-                a[k, m] = np.linalg.norm(self._centers[k, m, :-1] - (x, y))
+                a[k, m] = np.linalg.norm(self._centers[k, m, :-1] - (y, x))
             indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
         cropped_points = self._centers[
-            indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1], :
+            indexes[0][1] : indexes[1][1], indexes[0][0] : indexes[2][0], :
         ]
-        cropped_density = self._centers[
-            indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1]
+        cropped_density = self._density[
+            indexes[0][1] : indexes[1][1], indexes[0][0] : indexes[2][0]
         ]
-        self._density = np.zeros_like(cropped_density)
-        self.set_density_from_slice(cropped_density, cropped_points)
 
 
     def lattice_dynamics(
