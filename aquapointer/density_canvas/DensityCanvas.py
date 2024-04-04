@@ -332,21 +332,23 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_rectangular_lattice(self, num_x, num_y, spacing, vector = None):
-        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
+    def set_rectangular_lattice(self, num_x, num_y, spacing, rotation = None):
+        rotation = self.set_lattice_rotation(rotation)
+        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing, rotation=rotation)
         self.set_lattice(lattice, centering=True)
 
-    def set_poisson_disk_lattice(self, spacing: tuple, vector = None):
+    def set_poisson_disk_lattice(self, spacing: tuple, rotation = None):
+        rotation = self.set_lattice_rotation(rotation)
         lattice = Lattice.poisson_disk(
             density=self._density,
             length=(self._length_x, self._length_y),
             spacing=spacing,
-            vector=vector,
+            rotation=rotation,
         )
         self.set_lattice(lattice, centering=True)
 
-    def set_lattice_rotation(self, vector: ArrayLike):
-        self.lattice_rotation = vector
+    def set_lattice_rotation(self, rotation: ArrayLike):
+        self.lattice_rotation = rotation
 
     def clear_lattice(self):
         try:
