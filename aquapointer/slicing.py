@@ -203,6 +203,53 @@ def density_point_boundaries(density_grid: Grid) -> List[NDArray]:
     ) + density_origin(density_grid)
 
 
+def crop_slices(
+    points: List[NDArray],
+    densities: List[NDArray],
+    x_ranges: List[Tuple[float]],
+    y_ranges: List[Tuple[float]],
+):
+    """Crops point and density slice arrays by user-specified 2D coordinates."""
+
+    cropped_points = []
+    cropped_densities = []
+    for xr, yr, p, d in zip(
+        _check_bounds(x_ranges, points),
+        _check_bounds(y_ranges, points),
+        points,
+        densities,
+    ):
+        indexes = []
+        a = np.zeros_like(d)
+        for x, y in list(product(xr, yr))[:-1]:
+            for k, m in np.ndindex(d.shape):
+                a[k, m] = np.linalg.norm(p[k, m, :-1] - (x, y))
+            indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
+
+        cropped_points.append(
+            p[indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1], :]
+        )
+        cropped_densities.append(
+            d[indexes[0][0] : indexes[2][0], indexes[0][1] : indexes[1][1]]
+        )
+
+    return cropped_points, cropped_densities
+
+
+def _check_bounds(bounds, points):
+    """Ensures number of tuples specifying cropping boundaries matches number of slices."""
+    if len(bounds) == 1:
+        coords = bounds * len(points)
+    elif len(bounds) == len(points):
+        coords = bounds
+    else:
+        raise ValueError(
+            """Number of tuples specifying cropping boundaries must match
+            number of slices or be 1."""
+        )
+    return coords
+
+
 def visualize_slicing_plane(point: NDArray, normal: NDArray) -> None:
     c = -point.dot(normal / norm(normal))
     x = range(20)

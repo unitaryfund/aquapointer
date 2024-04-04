@@ -128,4 +128,57 @@ def find_optimum(qubo: np.ndarray) -> tuple[str, float]:
             optimal_b = b
     sol = ''.join(map(str, optimal_b))
     return sol, min_energy
-        
+
+def sparse_sigmaz_string(length: int, pos: list[int]) -> str:
+    r""" Given a list positions and integer length, returns a string of the
+    given length consisting of a Z at positions from the list of positions
+    and I otherwise. This is interpreted as a sparse Pauli operator.
+
+    Args:
+        length: Integer indicating the length of the string.
+        pos: List of integers for the positions of Z.
+
+    Returns:
+        String consisting of I's and Z's.  
+            
+    """ 
+    sparse_sigmaz_str = ""
+    for i in range(length):
+        if i in pos:
+            sparse_sigmaz_str += "Z"
+        else:
+            sparse_sigmaz_str += "I"
+    return sparse_sigmaz_str
+
+def get_ising_hamiltonian(qubo: np.ndarray) -> SparsePauliOp:
+    r""" Given a QUBO matrix, one can associate with it a sparse Pauli operator.
+    This is done by mapping a binary variable x -> z := (1-x)/2.
+
+    Args:
+        qubo: 2d numpy array.
+    
+    Returns:
+        SparsePauliOp corresponding to the QUBO matrix.       
+    
+    """ 
+    #the constant term (coefficient in front of II...I)
+    coeff_id = 0.5*np.sum([qubo[i][i] for i in range(len(qubo))])+0.5*np.sum([np.sum([qubo[i][j] for j in range(i+1,len(qubo))]) for i in range(len(qubo))])
+
+    #the linear terms (coefficient in front of I ... I sigma^z_i I ... I)
+    coeff_linear = [0.5*np.sum([qubo[i][j] for j in range(len(qubo))]) for i in range(len(qubo))]
+
+    #the quadratic terms (coefficient in front of I ... I sigma^z_i I ... I sigma^z_j I ... I)
+    coeff_quadratic = 0.25*qubo
+
+    #creat the list of sparse pauli operators and coefficients
+    sparse_list = [(sparse_sigmaz_string(len(qubo), []), coeff_id)]
+
+    for i in range(len(qubo)):
+        sparse_list.append((sparse_sigmaz_string(len(qubo), [i]), coeff_linear[i]))
+        for j in range(len(qubo)):
+            if i != j:
+                sparse_list.append((sparse_sigmaz_string(len(qubo), [i, j]), coeff_quadratic[i][j]))
+
+    hamiltionian = SparsePauliOp.from_list(sparse_list)
+
+    return hamiltionian
