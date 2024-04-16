@@ -31,7 +31,7 @@ def density_slices_by_axis(
 
 def density_slices_by_plane(
     density_grid: Grid,
-    slicing_planes: List[Tuple[NDArray, NDArray]],
+    slicing_planes: List[NDArray],
 ) -> List[DensityCanvas]:
     """Slice 3D density grid by planes specified by a list of point and axis
     pairs and flatten slices into 2D density arrays positioned at each
@@ -109,8 +109,8 @@ def density_slices_by_plane(
         length_x = np.mean(points_array[0][:][:] - points_array[-1][0][0]) / points_array.shape[0]
         length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
         dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
-        dc.set_density_from_slice(density_array.transpose(), points_array.transpose((1, 0, 2)))
-        dc.set_lattice_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
+        dc.set_density_from_slice(density_array.transpose())
+        dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
         density_canvases.append(dc)
     return density_canvases
 

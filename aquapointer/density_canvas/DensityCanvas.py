@@ -236,12 +236,11 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_density_from_slice(self, slice: ArrayLike, centers: ArrayLike):
+    def set_density_from_slice(self, slice: ArrayLike):
         if slice.shape != self._density.shape:
             raise ValueError(f"The slice must have shape {self._density.shape}")
         self.clear_density()
         self.clear_pubo()
-        self._centers = centers
         self._density = slice
         self._empty = False
         self._density_type = "data"
@@ -332,9 +331,8 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_rectangular_lattice(self, num_x, num_y, spacing, rotation = None):
-        rotation = self.set_lattice_rotation(rotation)
-        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing, rotation=rotation)
+    def set_rectangular_lattice(self, num_x, num_y, spacing):
+        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
         self.set_lattice(lattice, centering=True)
     
     def set_triangular_lattice(self, nrows, ncols, spacing):
@@ -345,18 +343,16 @@ class DensityCanvas:
         lattice = Lattice.hexagonal(nrows=nrows, ncols=ncols, spacing=spacing)
         self.set_lattice(lattice, centering=True)
 
-    def set_poisson_disk_lattice(self, spacing: tuple, rotation = None):
-        rotation = self.set_lattice_rotation(rotation)
+    def set_poisson_disk_lattice(self, spacing: tuple):
         lattice = Lattice.poisson_disk(
             density=self._density,
             length=(self._length_x, self._length_y),
             spacing=spacing,
-            rotation=rotation,
         )
         self.set_lattice(lattice, centering=True)
 
-    def set_lattice_rotation(self, rotation: ArrayLike):
-        self.lattice_rotation = rotation
+    def set_canvas_rotation(self, rotation: ArrayLike):
+        self.canvas_rotation = rotation
 
     def clear_lattice(self):
         try:
