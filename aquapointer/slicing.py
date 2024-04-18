@@ -19,17 +19,18 @@ def density_file_to_grid(filename: str) -> Grid:
     return Grid(filename)
 
 
-def density_slices_by_axis(
-    density_grid: Grid, axis: NDArray, distances: NDArray
+def density_slices_by_plane_and_offsets(
+    density_grid: Grid, points: NDArray, offsets: List[float]
 ) -> List[DensityCanvas]:
     """Slice 3D density grid at specified intervals along a specified axis
     and flatten slices into 2D density arrays positioned at each midplane."""
-    origin = density_origin(density_grid)
-    slicing_planes = generate_planes_by_axis(axis, distances, origin)
-    return density_slices_by_plane(density_grid, slicing_planes)
+    slices = [0]
+    slices.append(offsets)
+    slicing_planes = [points + s * np.ones((3,3)) for s in slices]
+    return density_slices_by_planes(density_grid, slicing_planes)
 
 
-def density_slices_by_plane(
+def density_slices_by_planes(
     density_grid: Grid,
     slicing_planes: List[NDArray],
 ) -> List[DensityCanvas]:
@@ -184,16 +185,6 @@ def _shape_slice(points: NDArray, density, normal: NDArray):
         density_array[i : i + len(point_list[j]), j] = density_list[j]
 
     return points_array, density_array
-
-
-def generate_planes_by_axis(
-    axis: NDArray,
-    distances: NDArray,
-    origin: NDArray,
-) -> List[Tuple[NDArray, NDArray]]:
-    """Define slicing planes at specified intervals along a specified axis
-    relative to the origin of the grid."""
-    return [(origin + axis * d, axis) for d in distances]
 
 
 def density_origin(density_grid: Grid) -> NDArray:
