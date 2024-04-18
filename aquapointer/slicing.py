@@ -39,20 +39,25 @@ def density_slices_by_plane(
     idx_lists = [[] for _ in range(len(slicing_planes) + 1)]
     point_lists = [[] for _ in range(len(slicing_planes) + 1)]
     density_lists = [[] for _ in range(len(slicing_planes) + 1)]
-    normals = [s / norm(s) for s in list(zip(*slicing_planes))[1]]
+    normals = []
+    for s in slicing_planes:
+        u = (s[0, :] - s[1, :]) / norm(s[0, :] - s[1, :])
+        v = (s[0, :] - s[2, :]) / norm(s[0, :] - s[2, :])
+        normals.append(np.cross(u, v))
+
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
 
     midplane_points = (
-        [(origin + slicing_planes[0][0]) / 2]
+        [(origin + slicing_planes[0][0, :]) / 2]
         + [
-            (slicing_planes[s][0] + slicing_planes[s + 1][0]) / 2
+            (slicing_planes[s][0, :] + slicing_planes[s + 1][0, :]) / 2
             for s in range(len(slicing_planes) - 1)
         ]
         + [
-            slicing_planes[-1][0]
-            + slicing_planes[-1][1]
-            * (endpoint - slicing_planes[-1][0]).dot(slicing_planes[-1][1])
+            slicing_planes[-1][0, :]
+            + normals[-1][1]
+            * (endpoint - slicing_planes[-1][0, :]).dot(normals[-1][1])
             / 2
         ]
     )
@@ -75,20 +80,20 @@ def density_slices_by_plane(
         for s in range(len(slicing_planes) + 1):
             if s == 0:
                 # slice is in opposite direction of the normal
-                d = (center - slicing_planes[s][0]).dot(normals[s])
+                d = (center - slicing_planes[s][0, :]).dot(normals[s])
                 if d < 0:
                     break
 
             elif 0 < s < len(slicing_planes):
                 # slice between two planes
-                d1 = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
-                d2 = (center - slicing_planes[s][0]).dot(normals[s])
+                d1 = (center - slicing_planes[s - 1][0, :]).dot(normals[s - 1])
+                d2 = (center - slicing_planes[s][0, :]).dot(normals[s])
                 if d1 >= 0 and d2 < 0:
                     break
 
             else:
                 # slice with one plane, in direction of the normal
-                d = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
+                d = (center - slicing_planes[s - 1][0, :]).dot(normals[s - 1])
                 if d > 0:
                     break
 
@@ -106,9 +111,9 @@ def density_slices_by_plane(
         points_array, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
         )
-        length_x = np.mean(points_array[0][:][:] - points_array[-1][0][0]) / points_array.shape[0]
-        length_y = np.mean(points_array[:][0][:] - points_array[:][-1][:]) / points_array.shape[1]
-        dc = DensityCanvas(origin,  length_x, length_y, points_array.shape[0], points_array.shape[1])
+        length_x = points_array[-1, 0, 0] - points_array[0, 0, 0]
+        length_y = points_array[0, -1, 1] - points_array[0, 0, 1]
+        dc = DensityCanvas(origin, length_x, length_y, density_array.shape[0], density_array.shape[1])
         dc.set_density_from_slice(density_array.transpose())
         dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
         density_canvases.append(dc)
