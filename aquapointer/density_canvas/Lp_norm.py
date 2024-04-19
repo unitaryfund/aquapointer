@@ -214,7 +214,6 @@ def Lp_coefficients(coords, p, base, component, params, high=None, low=None, eff
                 else:
                     value = integral(p, k, list(indices), r, base, component, params)
                 coefficients[len(r)][tuple(sorted(indices))] += prefactor*value
-                print(k, r, tuple(sorted(indices)), prefactor, value)
     return coefficients
 
 def Lp_coefficients_first_order(coords, p, base, component, params):
