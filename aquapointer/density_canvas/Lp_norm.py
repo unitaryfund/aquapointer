@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.special import binom
 import itertools as it
-from scipy.stats import multivariate_normal
 
 def integer_partitions(n):
     """ Function to calculate integer partitions of n
