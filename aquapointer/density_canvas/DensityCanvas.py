@@ -280,7 +280,7 @@ class DensityCanvas:
         except AttributeError:
             pass
         
-    def calculate_pubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None):
+    def calculate_pubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None, efficient_qubo=True):
         """ Calcuates the coefficients of the cost function.
         The coefficients are stored in a dictionary {1:{}, 2:{}, ..., p:{}} where the key
         represents the interaction order and the values are dictionaries.
@@ -326,7 +326,7 @@ class DensityCanvas:
 
         # calculate using formula
         self._pubo = {
-            "coeffs": lpn.Lp_coefficients(len(lattice._coords), p, _base, _component, params, high, low),
+            "coeffs": lpn.Lp_coefficients(lattice._coords, p, _base, _component, params, high, low, efficient_qubo),
             "p": p,
             "params": params,
             "high": high,
