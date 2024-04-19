@@ -29,13 +29,9 @@ class LoadData:
             self.rescaled_register_positions = self.load_rescaled_register_positions(path=BASE_PATH + REG_DIR)
             
         elif protein in ["1NNC", "bromoD", "dehydratase", "HIV1", "test_from_Watsite"]:
-            grid = density_file_to_grid("../data/3D-RISM_densities/test_from_Watsite/prot_3drism.O.1.dx")
+            grid = density_file_to_grid("../data/3D-RISM_densities/"+protein+"/prot_3drism.O.1.dx")
             self.plane_points, self.densities = density_slices_by_axis(grid, axis=np.array([0, 0, 1]), distances=np.array([10, 20, 30]))
             self.rescaled_register_positions = self.get_rescaled_register_positions()
-            # with open(RISM3D_DIR + protein + '/reg_rescaled_positions.pkl', 'rb') as handle:
-            #     self.rescaled_register_positions = pickle.load(handle)
-            # with open(RISM3D_DIR + protein + '/slices.pkl', 'rb') as handle:
-            #     self.densities = pickle.load(handle)
 
         else:
             print(f"there is no 3D RISM data for {protein}")
