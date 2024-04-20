@@ -24,9 +24,12 @@ def density_slices_by_plane_and_offsets(
 ) -> List[DensityCanvas]:
     """Slice 3D density grid at specified intervals along a specified axis
     and flatten slices into 2D density arrays positioned at each midplane."""
-    slices = [0]
-    slices.append(offsets)
-    slicing_planes = [points + s * np.ones((3,3)) for s in slices]
+    slicing_planes = [points]
+    u = (points[1, :] - points[0, :]) / norm(points[1, :] - points[0, :])
+    v = (points[2, :] - points[0, :]) / norm(points[2, :] - points[0, :])
+    for f in offsets:
+        slicing_planes.append(points + f * np.cross(u, v))
+
     return density_slices_by_planes(density_grid, slicing_planes)
 
 
@@ -42,8 +45,8 @@ def density_slices_by_planes(
     density_lists = [[] for _ in range(len(slicing_planes) + 1)]
     normals = []
     for s in slicing_planes:
-        u = (s[0, :] - s[1, :]) / norm(s[0, :] - s[1, :])
-        v = (s[0, :] - s[2, :]) / norm(s[0, :] - s[2, :])
+        u = (s[1, :] - s[0, :]) / norm(s[1, :] - s[0, :])
+        v = (s[2, :] - s[0, :]) / norm(s[2, :] - s[0, :])
         normals.append(np.cross(u, v))
 
     origin = density_origin(density_grid)
@@ -107,7 +110,6 @@ def density_slices_by_planes(
         density_lists[s].append(density)
 
     density_canvases = []
- 
     for i in range(len(idx_lists)):
         points_array, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
