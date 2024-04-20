@@ -360,21 +360,24 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def crop_canvas(self, x_range: Tuple[float], y_range: Tuple[float]):
+    def crop_canvas(self, center: Tuple[float], size: Tuple[float]):
         """Crops lattice and density slice by user-specified 2D coordinates."""
-        indexes = []
-        a = np.zeros_like(self._density)
-        for y, x in list(product(y_range, x_range))[:-1]:
-            for k, m in np.ndindex(self._density.shape):
-                a[k, m] = np.linalg.norm(self._centers[k, m, :-1] - (y, x))
-            indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
-        cropped_points = self._centers[
-            indexes[0][1] : indexes[1][1], indexes[0][0] : indexes[2][0], :
-        ]
-        cropped_density = self._density[
-            indexes[0][1] : indexes[1][1], indexes[0][0] : indexes[2][0]
-        ]
+        x_inds = (
+            int((self._origin[0] - center[0] - size[0] / 2) / self._dx),
+            int((self._origin[0] - center[0] + size[0] / 2) / self._dx),
+        )
+        y_inds = (
+            int((self._origin[1] - center[1] - size[1] / 2) / self._dx),
+            int((self._origin[1] - center[1] + size[1] / 2) / self._dy),
+        )
 
+        cropped_density = self._density[y_inds[0] : y_inds[1], x_inds[0] : x_inds[1]]
+        self._npoints_x = cropped_density.shape[1]
+        self._npoints_y = cropped_density.shape[0]
+        self._length_x = self._npoints_x * self._dx
+        self._length_y = self._npoints_y * self._dy
+        self._fill_derived_attributes()
+        self.set_density_from_slice(cropped_density)
 
     def lattice_dynamics(
         self,
@@ -629,7 +632,7 @@ class DensityCanvas:
     def plotting_objects(
         self,
         figsize=(10, 8),
-        title = None,
+        title=None,
         draw_centers=False,
         draw_lattice=False,
         lattice_history=False,
