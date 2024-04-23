@@ -4,44 +4,52 @@
 # LICENSE file in the root directory of this source tree.
 
 import numpy as np
-from qiskit.primitives import Sampler
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.primitives import BackendSampler
 from qiskit import QuantumCircuit
 
 from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, ising_ham: SparsePauliOp, sampler: Sampler, params: np.ndarray) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray, prob_opt_sol: bool) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
-        self.ising_ham = ising_ham
         self.sampler = sampler
 
         if params.any():
             self.params = params
         else:
             self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
-            
 
+        self.r = 0.1
+        self.prob_opt_sol = prob_opt_sol
         self.history = []
 
     def run(self, alpha: float, maxiter: int, method="COBYLA"):
+        r""" Runs the minization.
+
+        Args:
+            alpha: Confidence level.
+            maxiter: Maximum number of iterations.
+            method: Method for updating parameters.
+        
+        Returns:
+            Result from running scipy.optimize.minimize.
+        """
         res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
         return res
            
     def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
-        """
-        Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
+        r""" Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
 
-        Parameters:
-        - probabilities: List or array of probabilities
-        - values: List or array of corresponding values
-        - confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
+        Args:
+            probabilities: List or array of probabilities
+            values: List or array of corresponding values
+            confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
 
         Returns:
-        - CVaR
+            CVaR
         """
 
         # Sort values in ascending order
@@ -62,16 +70,15 @@ class VQE:
         return cvar
     
     def cvar_energy(self, params: np.ndarray, alpha: float) -> float:
-        """ 
-        Function that takes parameters to bind to the ansatz and confidence level
+        r""" Function that takes parameters to bind to the ansatz and confidence level
         alpha, to compute the cvar energy (by sampling the ansatz and computing cvar).
         
-        Attributes:
-        - params: list/array of probabilities
-        - alpha: confidence level
+        Args:
+            params: numpy array of parameters for the ansatz.
+            alpha: Confidence level.
         
         Returns:
-        - CVaR energy
+            CVaR energy.
         """
 
         qc = self.ansatz.assign_parameters(params)
@@ -104,12 +111,31 @@ class VQE:
         sorted_values = prob_energy[:, 1][sorted_indices]
 
         opt_energy = sorted_values[0]
+        if opt_energy < 0:
+            factor = 1 - self.r
+        else:
+            factor = 1 + self.r
+
+        # now obtain the energies that are 10% close to optimal
+        eps_rel_energies = []
+        for i, val in enumerate(sorted_values):
+            if val <= factor * opt_energy:
+                eps_rel_energies.append(i)
+
         opt_b = sorted_keys[0]
         opt_prob = sorted_probs[0]
         prob_energy = np.array(prob_energy)
         cvar_energy = self._compute_cvar(prob_energy[:, 0], prob_energy[:, 1], alpha)
 
+        top_opt_prob = np.sum(sorted_probs[eps_rel_energies])
+        avg_top_energies = np.mean(sorted_probs[eps_rel_energies]*sorted_values[eps_rel_energies])
+
         # save intermediate optimal bitsting and energy to self.history
-        self.history.append([opt_b, opt_prob, opt_energy])
+        if self.prob_opt_sol:
+            self.history.append([opt_b, opt_prob, opt_energy])
+        else:
+            self.history.append([top_opt_prob, avg_top_energies])
+
+
 
         return cvar_energy

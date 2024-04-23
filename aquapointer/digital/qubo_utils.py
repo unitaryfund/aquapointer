@@ -48,6 +48,17 @@ def Vij(shape: tuple[int, int], mean1: tuple[float, float], mean2: tuple[float, 
     return res
 
 def get_qubo_matrices(densities: list[np.ndarray], rescaled_positions: list[np.ndarray]) -> list[np.ndarray]:
+    r""" Given the density slices and rescaled positions of the registers,
+    one can compute the corresponding QUBO matrices.
+
+    Args:
+        densities: List of numpy arrays containing the 3D-RISM slices.
+        rescaled_positions: List of numpy arrays containing the rescaled positions of the register.
+    
+    Returns:
+        List of numpy arrays containing the QUBO matrices for each slice.        
+    
+    """   
     variance = 50
     amplitude = 6
     qubo_matrices = []
@@ -75,17 +86,35 @@ def get_qubo_matrices(densities: list[np.ndarray], rescaled_positions: list[np.n
     
     return qubo_matrices
 
-#Ising energy function (objective function to minimize)
 def ising_energy(assignment: np.ndarray, qubo: np.ndarray) -> float:
+    r""" Given a binary string x and a QUBO matrix Q, computes the inner product <x, Qx>.
+
+    Args:   
+        assignment: numpy array, 0,1-valued.
+        qubo: 2d numpy array.
+
+    Returns:
+        Float given by computing the inner product <x, Qx>.
+    
+    
+    """ 
     return np.transpose(assignment) @ qubo @ assignment
 
-#for the classical brutef-force approach
 def bitfield(n: int, L: int) -> list[int]:
     result = np.binary_repr(n, L)
     return [int(digit) for digit in result]
 
-#find for a given qubo matrix the optimal bitstring that minimizes energy by going over all possible bitstrings.
 def find_optimum(qubo: np.ndarray) -> tuple[str, float]:
+    r""" Brute-force approach to solving the QUBO problem: finding the optimal
+    bitstring x that minimizes <x, Qx> where Q is the QUBO matrix.
+
+    Args:
+        qubo: 2d numpy array.
+    
+    Returns:
+        Tuple of a bitstring and minimal energy (such that <x, Qx> is minimized).   
+    
+    """ 
     shape = qubo.shape
     L = shape[0]
 
@@ -101,6 +130,18 @@ def find_optimum(qubo: np.ndarray) -> tuple[str, float]:
     return sol, min_energy
 
 def sparse_sigmaz_string(length: int, pos: list[int]) -> str:
+    r""" Given a list positions and integer length, returns a string of the
+    given length consisting of a Z at positions from the list of positions
+    and I otherwise. This is interpreted as a sparse Pauli operator.
+
+    Args:
+        length: Integer indicating the length of the string.
+        pos: List of integers for the positions of Z.
+
+    Returns:
+        String consisting of I's and Z's.  
+            
+    """ 
     sparse_sigmaz_str = ""
     for i in range(length):
         if i in pos:
@@ -110,6 +151,16 @@ def sparse_sigmaz_string(length: int, pos: list[int]) -> str:
     return sparse_sigmaz_str
 
 def get_ising_hamiltonian(qubo: np.ndarray) -> SparsePauliOp:
+    r""" Given a QUBO matrix, one can associate with it a sparse Pauli operator.
+    This is done by mapping a binary variable x -> z := (1-x)/2.
+
+    Args:
+        qubo: 2d numpy array.
+    
+    Returns:
+        SparsePauliOp corresponding to the QUBO matrix.       
+    
+    """ 
     #the constant term (coefficient in front of II...I)
     coeff_id = 0.5*np.sum([qubo[i][i] for i in range(len(qubo))])+0.5*np.sum([np.sum([qubo[i][j] for j in range(i+1,len(qubo))]) for i in range(len(qubo))])
 
@@ -128,13 +179,6 @@ def get_ising_hamiltonian(qubo: np.ndarray) -> SparsePauliOp:
             if i != j:
                 sparse_list.append((sparse_sigmaz_string(len(qubo), [i, j]), coeff_quadratic[i][j]))
 
-    I2 = SparsePauliOp.from_list(sparse_list)
+    hamiltionian = SparsePauliOp.from_list(sparse_list)
 
-    return I2
-
-def get_most_likely(msrmnts: dict) -> list[int]:
-    b = max(msrmnts, key=msrmnts.get)
-    bnot = [(int(x)+1)%2 for x in b]
-    
-    return bnot
-        
+    return hamiltionian

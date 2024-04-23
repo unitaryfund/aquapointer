@@ -53,7 +53,7 @@ def find_water_positions(
     """
     bitstrings = []
     for k, d in enumerate(densities):
-        params = fit_gaussian(d)
+        params = [58, 0, 0, 48.2]
         variance, amplitude = params[0], params[3]
         bitstrings.append(
             run_qubo(
