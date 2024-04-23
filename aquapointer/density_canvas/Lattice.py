@@ -70,6 +70,29 @@ class Lattice:
         return cls(np.array(coords, dtype=float), min_spacing=spacing, length_x=length_x, length_y=length_y, center=center, type="rectangular")
 
     @classmethod
+    def triangular(cls, nrows: int, ncols: int, spacing: numbers.Number):
+        coords = np.mgrid[:ncols, :nrows].transpose().reshape(-1, 2).astype(float)
+        coords[:, 0] += 0.5 * np.mod(coords[:, 1], 2)
+        coords[:, 1] *= np.sqrt(3) / 2
+        coords *= spacing
+        center = np.array([np.mean(coords[:,0]), np.mean(coords[:,1])])
+
+        return cls(np.array(coords, dtype=float), min_spacing=spacing, center=center, type="triangular")
+    
+    @classmethod
+    def hexagonal(cls, nrows: int, ncols: int, spacing: numbers.Number):
+        rows = range(nrows)
+        cols = range(ncols)
+        xx = (0.5 + i + i // 2 + (j % 2) * ((i % 2) - 0.5) for i in cols for j in rows)
+        h = np.sqrt(3) / 2
+        yy = (h * j for i in cols for j in rows)
+        
+        coords = spacing*np.array([(x, y) for x, y in zip(xx, yy)])
+        center = np.array([np.mean(coords[:,0]), np.mean(coords[:,1])])
+
+        return cls(np.array(coords, dtype=float), min_spacing=spacing, center=center, type="hexagonal")
+
+    @classmethod
     def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000):
         """
         Poisson disk sampling with variable radius.

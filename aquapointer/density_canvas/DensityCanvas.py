@@ -336,6 +336,14 @@ class DensityCanvas:
         rotation = self.set_lattice_rotation(rotation)
         lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing, rotation=rotation)
         self.set_lattice(lattice, centering=True)
+    
+    def set_triangular_lattice(self, nrows, ncols, spacing):
+        lattice = Lattice.triangular(nrows=nrows, ncols=ncols, spacing=spacing)
+        self.set_lattice(lattice, centering=True)
+    
+    def set_hexagonal_lattice(self, nrows, ncols, spacing):
+        lattice = Lattice.hexagonal(nrows=nrows, ncols=ncols, spacing=spacing)
+        self.set_lattice(lattice, centering=True)
 
     def set_poisson_disk_lattice(self, spacing: tuple, rotation = None):
         rotation = self.set_lattice_rotation(rotation)
@@ -414,10 +422,9 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def calculate_pubo_coefficients(
-        self, p: int, params: ArrayLike, high=None, low=None
-    ):
-        """Calcuates the coefficients of the cost function.
+        
+    def calculate_pubo_coefficients(self, p: int, params: ArrayLike, high=None, low=None, efficient_qubo=True):
+        """ Calcuates the coefficients of the cost function.
         The coefficients are stored in a dictionary {1:{}, 2:{}, ..., p:{}} where the key
         represents the interaction order and the values are dictionaries.
         The dictionary associated to a key is of the type {(0,1): val, (0,2): val, ...}
@@ -465,9 +472,9 @@ class DensityCanvas:
 
         # calculate using formula
         self._pubo = {
-            "coeffs": lpn.Lp_coefficients(
-                len(lattice._coords), p, _base, _component, params, high, low
-            ),
+
+            "coeffs": lpn.Lp_coefficients(lattice._coords, p, _base, _component, params, high, low, efficient_qubo),
+
             "p": p,
             "params": params,
             "high": high,

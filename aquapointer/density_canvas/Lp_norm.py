@@ -161,10 +161,12 @@ def Lp_ising_energy_first_order_truncation(x, p, base, component, params):
 
     return res
 
-def Lp_coefficients(M, p, base, component, params, high=None, low=None):
+def Lp_coefficients(coords, p, base, component, params, high=None, low=None, efficient_qubo=True):
     """Calculates the Lp coefficients and stores them in a dictionary
     high and low are optional parameters that can truncate the computation at some
     order, from above or from below"""
+
+    M = len(coords)
 
     if high is None:
         high = p
@@ -186,6 +188,7 @@ def Lp_coefficients(M, p, base, component, params, high=None, low=None):
         for idx in idxs:
             coefficients[i][idx] = 0
 
+
     # calculate coefficients
     for k in range(1, p+1):
         fact_k = np.math.factorial(k)
@@ -201,17 +204,26 @@ def Lp_coefficients(M, p, base, component, params, high=None, low=None):
             # cycle over all permutations
             index_permutations = it.permutations(range(M), r=len(r))
             for indices in index_permutations:
-                prefactor = (-1)**k * binom(p, k) * multiplicity 
-                value = integral(p, k, list(indices), r, base, component, params) 
+                prefactor = (-1)**k * binom(p, k) * multiplicity
+                if p==2 and k==2 and efficient_qubo:
+                    if len(r)==1:
+                        d = np.linalg.norm(coords[indices[0]] - coords[indices[0]])
+                    else:
+                        d = np.linalg.norm(coords[indices[0]] - coords[indices[1]])
+                    value = params[0]*params[0]*np.exp(-d**2/(2*2*params[1]))/(2*np.pi*2*params[1])
+                else:
+                    value = integral(p, k, list(indices), r, base, component, params)
                 coefficients[len(r)][tuple(sorted(indices))] += prefactor*value
     return coefficients
 
-def Lp_coefficients_first_order(M, p, base, component, params):
+def Lp_coefficients_first_order(coords, p, base, component, params):
     """Calculates the first order Lp coefficients"""
-    
+
     if p//2 != p/2:
         raise ValueError("power p must be even")
-    
+
+    M = len(coords)
+
     # calculate first order
     coefficients = []
     for i1 in range(M):
