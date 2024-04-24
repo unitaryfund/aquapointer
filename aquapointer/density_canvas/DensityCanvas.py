@@ -236,12 +236,11 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_density_from_slice(self, slice: ArrayLike, centers: ArrayLike):
+    def set_density_from_slice(self, slice: ArrayLike):
         if slice.shape != self._density.shape:
             raise ValueError(f"The slice must have shape {self._density.shape}")
         self.clear_density()
         self.clear_pubo()
-        self._centers = centers
         self._density = slice
         self._empty = False
         self._density_type = "data"
@@ -332,9 +331,8 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def set_rectangular_lattice(self, num_x, num_y, spacing, rotation = None):
-        rotation = self.set_lattice_rotation(rotation)
-        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing, rotation=rotation)
+    def set_rectangular_lattice(self, num_x, num_y, spacing):
+        lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
         self.set_lattice(lattice, centering=True)
     
     def set_triangular_lattice(self, nrows, ncols, spacing):
@@ -345,18 +343,16 @@ class DensityCanvas:
         lattice = Lattice.hexagonal(nrows=nrows, ncols=ncols, spacing=spacing)
         self.set_lattice(lattice, centering=True)
 
-    def set_poisson_disk_lattice(self, spacing: tuple, rotation = None):
-        rotation = self.set_lattice_rotation(rotation)
+    def set_poisson_disk_lattice(self, spacing: tuple):
         lattice = Lattice.poisson_disk(
             density=self._density,
             length=(self._length_x, self._length_y),
             spacing=spacing,
-            rotation=rotation,
         )
         self.set_lattice(lattice, centering=True)
 
-    def set_lattice_rotation(self, rotation: ArrayLike):
-        self.lattice_rotation = rotation
+    def set_canvas_rotation(self, rotation: ArrayLike):
+        self.canvas_rotation = rotation
 
     def clear_lattice(self):
         try:
@@ -364,21 +360,24 @@ class DensityCanvas:
         except AttributeError:
             pass
 
-    def crop_canvas(self, x_range: Tuple[float], y_range: Tuple[float]):
+    def crop_canvas(self, center: Tuple[float], size: Tuple[float]):
         """Crops lattice and density slice by user-specified 2D coordinates."""
-        indexes = []
-        a = np.zeros_like(self._density)
-        for y, x in list(product(y_range, x_range))[:-1]:
-            for k, m in np.ndindex(self._density.shape):
-                a[k, m] = np.linalg.norm(self._centers[k, m, :-1] - (y, x))
-            indexes.append(np.unravel_index(np.argmin(a, axis=None), a.shape))
-        cropped_points = self._centers[
-            indexes[0][1] : indexes[1][1], indexes[0][0] : indexes[2][0], :
-        ]
-        cropped_density = self._density[
-            indexes[0][1] : indexes[1][1], indexes[0][0] : indexes[2][0]
-        ]
+        x_inds = (
+            int((self._origin[0] - center[0] - size[0] / 2) / self._dx),
+            int((self._origin[0] - center[0] + size[0] / 2) / self._dx),
+        )
+        y_inds = (
+            int((self._origin[1] - center[1] - size[1] / 2) / self._dx),
+            int((self._origin[1] - center[1] + size[1] / 2) / self._dy),
+        )
 
+        cropped_density = self._density[y_inds[0] : y_inds[1], x_inds[0] : x_inds[1]]
+        self._npoints_x = cropped_density.shape[1]
+        self._npoints_y = cropped_density.shape[0]
+        self._length_x = self._npoints_x * self._dx
+        self._length_y = self._npoints_y * self._dy
+        self._fill_derived_attributes()
+        self.set_density_from_slice(cropped_density)
 
     def lattice_dynamics(
         self,
@@ -633,7 +632,7 @@ class DensityCanvas:
     def plotting_objects(
         self,
         figsize=(10, 8),
-        title = None,
+        title=None,
         draw_centers=False,
         draw_lattice=False,
         lattice_history=False,
