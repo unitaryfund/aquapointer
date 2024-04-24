@@ -44,8 +44,7 @@ def scale_gaussian(
         amp: Amplitude of the distribution.
 
     Returns:
-        The value at each point on a 2-D grid of a sum of isotropic
-    normal distributions.
+        The value at each point on a 2-D grid of a sum of isotropic normal distributions.
     """
     x = xy_data[:, 0]
     y = xy_data[:, 1]
@@ -80,15 +79,13 @@ def calculate_one_body_qubo_coeffs(
     r"""Calculates the one-body coefficients of the QUBO.
 
     Args:
-        density: Density slices of the protein cavity as a 2-D array of density
-            values.
+        density: Density slices of the protein cavity as a 2-D array of density values.
         rescaled_pos: Array of rescaled register positions.
         variance: Variance of the distribution fit to the density data.
         pos: Array of register positions.
 
     Returns:
-        Tuple of an array of one-body QUBO coefficients and their corresponding
-        scaling.
+        Tuple of an array of one-body QUBO coefficients and their corresponding scaling.
     """
     gamma_list = dsu.gamma_list(density, rescaled_pos, variance)
     distances_density = dsu.find_possible_distances(rescaled_pos)
@@ -106,9 +103,9 @@ def scale_detunings(
     max_det: float,
 ) -> NDArray:
     r"""Calculates the detunings to be used for the QUBO.
+
     Args:
-        density: Density slices of the protein cavity as a 2-D array of density
-            values.
+        density: Density slices of the protein cavity as a 2-D array of density values.
         pos: Array of register positions.
         rescaled_pos: Array of rescaled register positions.
         variance: Variance of the distribution fit to the density data.
@@ -116,8 +113,7 @@ def scale_detunings(
         max_det: Maximum detuning allowed by the device.
 
     Returns:
-        Tuple of an array of one-body QUBO coefficients and their corresponding
-        scaling.
+        Tuple of an array of one-body QUBO coefficients and their corresponding scaling.
     """
     gamma_list, scale = calculate_one_body_qubo_coeffs(
         density, rescaled_pos, variance, pos
@@ -172,16 +168,14 @@ def run_qubo(
     num_samples: int = 1000,
 ) -> str:
     r"""Obtain bitstring solving the QUBO problem for the input density slice.
+    
     Args:
-        density: Density slices of the protein cavity as a 2-D array of density
-            values.
+        density: Density slices of the protein cavity as a 2-D array of density values.
         executor: Function that executes a pulse sequence on a quantum backend.
-        proc: ``Processor`` object storing settings for running
-            on a quantum backend.
+        proc: ``Processor`` object storing settings for running on a quantum backend.
 
         qubo_cost: Cost function to be optimized in the QUBO.
-        num_samples: Number of times to execute the quantum experiment or
-            simulation on the backend.
+        num_samples: Number of times to execute the quantum experiment or simulation on the backend.
 
     Returns:
         Bitstring solving the QUBO for the input density slice.
@@ -223,14 +217,12 @@ def best_solution_from_samples(
         [NDArray, NDArray, float, str, float, float], float
     ] = default_cost,
 ) -> str:
-    r"""Identify sampled bitstring with lowest QUBO cost for the input density
-    slice.
+    r"""Identify sampled bitstring with lowest QUBO cost for the input density slice.
 
     Args:
         samples: Bitstring samples obtained from executing the pulse sequence.
         rescaled_pos: Array of rescaled register positions.
-        density: Density slices of the protein cavity as a 2-D array of density
-            values.
+        density: Density slices of the protein cavity as a 2-D array of density values.
         brad: Blockade radius distance (in micrometers).
         var: Variance of the fitted density distribution.
         amp: Amplitude of the fitted density distribution.

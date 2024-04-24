@@ -11,7 +11,7 @@ import numpy as np
 from gridData import Grid
 from numpy.linalg import norm
 from numpy.typing import NDArray
-from aquapointer.density_canvas import DensityCanvas
+from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 
 
 def density_file_to_grid(filename: str) -> Grid:
@@ -19,40 +19,49 @@ def density_file_to_grid(filename: str) -> Grid:
     return Grid(filename)
 
 
-def density_slices_by_axis(
-    density_grid: Grid, axis: NDArray, distances: NDArray
-) -> Tuple[List[NDArray]]:
+def density_slices_by_plane_and_offsets(
+    density_grid: Grid, points: NDArray, offsets: List[float]
+) -> List[DensityCanvas]:
     """Slice 3D density grid at specified intervals along a specified axis
     and flatten slices into 2D density arrays positioned at each midplane."""
-    origin = density_origin(density_grid)
-    slicing_planes = generate_planes_by_axis(axis, distances, origin)
-    return density_slices_by_plane(density_grid, slicing_planes)
+    slicing_planes = [points]
+    u = (points[1, :] - points[0, :]) / norm(points[1, :] - points[0, :])
+    v = (points[2, :] - points[0, :]) / norm(points[2, :] - points[0, :])
+    for f in offsets:
+        slicing_planes.append(points + f * np.cross(u, v))
+
+    return density_slices_by_planes(density_grid, slicing_planes)
 
 
-def density_slices_by_plane(
+def density_slices_by_planes(
     density_grid: Grid,
-    slicing_planes: List[Tuple[NDArray, NDArray]],
-) -> Tuple[List[NDArray]]:
+    slicing_planes: List[NDArray],
+) -> List[DensityCanvas]:
     """Slice 3D density grid by planes specified by a list of point and axis
     pairs and flatten slices into 2D density arrays positioned at each
     midplane."""
     idx_lists = [[] for _ in range(len(slicing_planes) + 1)]
     point_lists = [[] for _ in range(len(slicing_planes) + 1)]
     density_lists = [[] for _ in range(len(slicing_planes) + 1)]
-    normals = [s / norm(s) for s in list(zip(*slicing_planes))[1]]
+    normals = []
+    for s in slicing_planes:
+        u = (s[1, :] - s[0, :]) / norm(s[1, :] - s[0, :])
+        v = (s[2, :] - s[0, :]) / norm(s[2, :] - s[0, :])
+        normals.append(np.cross(u, v))
+
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
 
     midplane_points = (
-        [(origin + slicing_planes[0][0]) / 2]
+        [(origin + slicing_planes[0][0, :]) / 2]
         + [
-            (slicing_planes[s][0] + slicing_planes[s + 1][0]) / 2
+            (slicing_planes[s][0, :] + slicing_planes[s + 1][0, :]) / 2
             for s in range(len(slicing_planes) - 1)
         ]
         + [
-            slicing_planes[-1][0]
-            + slicing_planes[-1][1]
-            * (endpoint - slicing_planes[-1][0]).dot(slicing_planes[-1][1])
+            slicing_planes[-1][0, :]
+            + normals[-1][1]
+            * (endpoint - slicing_planes[-1][0, :]).dot(normals[-1][1])
             / 2
         ]
     )
@@ -75,20 +84,20 @@ def density_slices_by_plane(
         for s in range(len(slicing_planes) + 1):
             if s == 0:
                 # slice is in opposite direction of the normal
-                d = (center - slicing_planes[s][0]).dot(normals[s])
+                d = (center - slicing_planes[s][0, :]).dot(normals[s])
                 if d < 0:
                     break
 
             elif 0 < s < len(slicing_planes):
                 # slice between two planes
-                d1 = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
-                d2 = (center - slicing_planes[s][0]).dot(normals[s])
+                d1 = (center - slicing_planes[s - 1][0, :]).dot(normals[s - 1])
+                d2 = (center - slicing_planes[s][0, :]).dot(normals[s])
                 if d1 >= 0 and d2 < 0:
                     break
 
             else:
                 # slice with one plane, in direction of the normal
-                d = (center - slicing_planes[s - 1][0]).dot(normals[s - 1])
+                d = (center - slicing_planes[s - 1][0, :]).dot(normals[s - 1])
                 if d > 0:
                     break
 
@@ -100,23 +109,21 @@ def density_slices_by_plane(
         )
         density_lists[s].append(density)
 
-    points = []
-    densities = []
+    density_canvases = []
     for i in range(len(idx_lists)):
         points_array, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
         )
-        points.append(points_array)
-        densities.append(density_array)
+        length_x = density_grid.delta[0] * density_array.shape[0]
+        length_y = density_grid.delta[1] * density_array.shape[1]
+        dc = DensityCanvas(origin, length_x, length_y, density_array.shape[0], density_array.shape[1])
+        dc.set_density_from_slice(density_array.transpose())
+        dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
+        density_canvases.append(dc)
+    return density_canvases
 
-        # density_canvas = DensityCanvas(origin, delta, delta, npoints_x, npoints_y)
-        # density_canvas.set_density_from_slice(density_array)
 
-    return points, densities  # density_canvases
-
-
-def _shape_slice(points: NDArray, density, normal: NDArray):
-    """Arrange lists of coordinates and density values into 2D arrays."""
+def _generate_slice_rotation_matrix(normal: NDArray):
     n = np.cross(np.array([0, 0, 1]), normal)
     n1 = n[0]
     n2 = n[1]
@@ -141,6 +148,11 @@ def _shape_slice(points: NDArray, density, normal: NDArray):
             ],
         ]
     )
+    return Rn
+
+def _shape_slice(points: NDArray, density, normal: NDArray):
+    """Arrange lists of coordinates and density values into 2D arrays."""
+    Rn = _generate_slice_rotation_matrix(normal)
     x_prime = Rn @ np.array([1, 0, 0])
     y_prime = Rn @ np.array([0, 1, 0])
 
@@ -175,16 +187,6 @@ def _shape_slice(points: NDArray, density, normal: NDArray):
         density_array[i : i + len(point_list[j]), j] = density_list[j]
 
     return points_array, density_array
-
-
-def generate_planes_by_axis(
-    axis: NDArray,
-    distances: NDArray,
-    origin: NDArray,
-) -> List[Tuple[NDArray, NDArray]]:
-    """Define slicing planes at specified intervals along a specified axis
-    relative to the origin of the grid."""
-    return [(origin + axis * d, axis) for d in distances]
 
 
 def density_origin(density_grid: Grid) -> NDArray:

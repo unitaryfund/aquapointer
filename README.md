@@ -9,17 +9,34 @@
 Package applying quantum algorithms to find locations of water molecules in a protein cavity.
 
 ## Getting started
-You can use [this notebook](notebooks/aquapointer_demo.ipynb) to get started with aquapointer. 
+You can use [this notebook](notebooks/aquapointer_demo.ipynb) to get started with aquapointer.
 
 ## Installing aquapointer
 From the top level of the repository, where the `setup.py` file is found, just run
 ```
 python setup.py install
 ```
-## Contributing
-Aquapointer is developed by [Unitary Fund](https://unitary.fund/), [PASQAL](https://www.pasqal.com/), and [Qubit Pharmaceuticals](https://www.qubit-pharmaceuticals.com/). You are welcome to contribute to the project, open an issue or a pull request. 
 
-You can join the [#aquapointer](https://discord.gg/cV4nEpMz) channel on the Unitary Fund Discord for community support. 
+## Documentation
+The documentation is found in the `docs` folder. To install the documentation you need to install `sphinx` and install the development environment.
+```
+pip install sphinx
+pip install -e .
+```
+
+To build an html version of the documentation, go to the docs directory and run the sphinx-build command, i.e.,
+```
+cd docs
+sphinx-build -b html source build
+```
+
+ Alternatively to the explicit sphinx-build command, you can use the `Makefile` shortcuts, such as `make html`.
+
+
+## Contributing
+Aquapointer is developed by [Unitary Fund](https://unitary.fund/), [PASQAL](https://www.pasqal.com/), and [Qubit Pharmaceuticals](https://www.qubit-pharmaceuticals.com/). You are welcome to contribute to the project, open an issue or a pull request.
+
+You can join the [#aquapointer](https://discord.gg/cV4nEpMz) channel on the Unitary Fund Discord for community support.
 
 ## Funding
 Work on aquapointer is supported by [Wellcome Leap](https://wellcomeleap.org/) as part of the Quantum for Bio Program ([Q4Bio](https://wellcomeleap.org/q4bio/program/)).
