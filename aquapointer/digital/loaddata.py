@@ -5,7 +5,7 @@
 
 import numpy as np
 import pickle
-from aquapointer.slicing import density_file_to_grid, density_slices_by_axis
+from aquapointer.slicing import density_file_to_grid#, density_slices_by_axis
 from pathlib import Path
 from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 
@@ -30,7 +30,7 @@ class LoadData:
             
         elif protein in ["1NNC", "bromoD", "dehydratase", "HIV1", "test_from_Watsite"]:
             grid = density_file_to_grid("../data/3D-RISM_densities/"+protein+"/prot_3drism.O.1.dx")
-            self.plane_points, self.densities = density_slices_by_axis(grid, axis=np.array([0, 0, 1]), distances=np.array([10, 20, 30]))
+            # self.plane_points, self.densities = density_slices_by_axis(grid, axis=np.array([0, 0, 1]), distances=np.array([10, 20, 30]))
             self.rescaled_register_positions = self.get_rescaled_register_positions()
 
         else:
