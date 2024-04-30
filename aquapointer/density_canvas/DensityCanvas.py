@@ -363,15 +363,17 @@ class DensityCanvas:
     def crop_canvas(self, center: Tuple[float], size: Tuple[float]):
         """Crops lattice and density slice by user-specified 2D coordinates."""
         x_inds = (
-            int((self._origin[0] - center[0] - size[0] / 2) / self._dx),
-            int((self._origin[0] - center[0] + size[0] / 2) / self._dx),
+            int((center[0] - self._origin[0] - size[0] / 2) / self._dx),
+            int((center[0] - self._origin[0] + size[0] / 2) / self._dx),
         )
         y_inds = (
-            int((self._origin[1] - center[1] - size[1] / 2) / self._dx),
-            int((self._origin[1] - center[1] + size[1] / 2) / self._dy),
+            int((center[1] - self._origin[1] - size[1] / 2) / self._dy),
+            int((center[1] - self._origin[1] + size[1] / 2) / self._dy),
         )
 
         cropped_density = self._density[y_inds[0] : y_inds[1], x_inds[0] : x_inds[1]]
+
+        self._origin = np.array(center)-np.array(size)/2
         self._npoints_x = cropped_density.shape[1]
         self._npoints_y = cropped_density.shape[0]
         self._length_x = self._npoints_x * self._dx
