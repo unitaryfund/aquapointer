@@ -5,6 +5,5 @@ numpy
 scipy
 GridDataFormats
 numba
-openqaoa
 sphinx_autodoc_typehints
 pylatexenc
