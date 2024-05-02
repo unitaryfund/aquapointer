@@ -11,7 +11,7 @@ from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray, prob_opt_sol: bool) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray, prob_opt_sol: bool=True) -> None:
         self.qubo = qubo
         self.ansatz = ansatz
         self.sampler = sampler
@@ -132,9 +132,9 @@ class VQE:
 
         # save intermediate optimal bitsting and energy to self.history
         if self.prob_opt_sol:
-            self.history.append([opt_b, opt_prob, opt_energy])
+            self.history.append([opt_b, np.round(opt_prob,7), opt_energy])
         else:
-            self.history.append([top_opt_prob, avg_top_energies])
+            self.history.append([np.round(top_opt_prob, 7), avg_top_energies])
 
 
 

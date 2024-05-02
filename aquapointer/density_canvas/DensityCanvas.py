@@ -303,6 +303,7 @@ class DensityCanvas:
             raise ValueError(
                 "It was not possible to generate that many Gaussians on this canvas"
             )
+        self.gaussian_centers = centers # save the random centers in gaussian_centers
         self.set_density_from_gaussians(centers, amplitude, variance)
 
     def set_lattice(self, lattice: Lattice, centering=True):
