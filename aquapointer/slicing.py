@@ -49,9 +49,9 @@ def density_slices_by_planes(
         v = (s[2, :] - s[0, :]) / norm(s[2, :] - s[0, :])
         n = np.cross(u, v)
         if np.dot(n, np.ones(3,)) >= 0:
-            normals.append(n / np.linalg.norm(n))
+            normals.append(n / norm(n))
         else:
-            normals.append(-n / np.linalg.norm(n))
+            normals.append(-n / norm(n))
 
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
