@@ -49,9 +49,9 @@ def density_slices_by_planes(
         v = (s[2, :] - s[0, :]) / norm(s[2, :] - s[0, :])
         n = np.cross(u, v)
         if np.dot(n, np.ones(3,)) >= 0:
-            normals.append(n)
+            normals.append(n / np.linalg.norm(n))
         else:
-            normals.append(-n)
+            normals.append(-n / np.linalg.norm(n))
 
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
@@ -115,7 +115,7 @@ def density_slices_by_planes(
 
     density_canvases = []
     for i in range(len(idx_lists)):
-        points_array, density_array = _shape_slice(
+        _, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
         )
         length_x = density_grid.delta[0] * density_array.shape[0]
@@ -154,7 +154,7 @@ def _generate_slice_rotation_matrix(normal: NDArray):
     )
     return Rn
 
-def _shape_slice(points: NDArray, density, normal: NDArray):
+def _shape_slice(points: NDArray, density: NDArray, normal: NDArray):
     """Arrange lists of coordinates and density values into 2D arrays."""
     Rn = _generate_slice_rotation_matrix(normal)
     x_prime = Rn @ np.array([1, 0, 0])
