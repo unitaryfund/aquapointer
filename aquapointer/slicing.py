@@ -56,19 +56,6 @@ def density_slices_by_planes(
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
 
-    midplane_points = (
-        [(origin + slicing_planes[0][0, :]) / 2]
-        + [
-            (slicing_planes[s][0, :] + slicing_planes[s + 1][0, :]) / 2
-            for s in range(len(slicing_planes) - 1)
-        ]
-        + [
-            slicing_planes[-1][0, :]
-            + normals[-1][1]
-            * (endpoint - slicing_planes[-1][0, :]).dot(normals[-1][1])
-            / 2
-        ]
-    )
     midplane_normals = (
         [normals[0]]
         + [
@@ -106,10 +93,18 @@ def density_slices_by_planes(
                     break
 
         idx_lists[s].append(ind)
+        if s == 0:
+            plane1 = [origin, normals[s]]
+            plane2 = [slicing_planes[s][0, :], normals[s]]
+        elif 0 < s < len(slicing_planes):
+            plane1 = [slicing_planes[s - 1][0, :], normals[s - 1]]
+            plane2 = [slicing_planes[s][0, :], normals[s]]
+        else:
+            plane1 = [slicing_planes[s - 1][0, :], normals[s - 1]]
+            plane2 = [endpoint, normals[s - 1]]
+
         point_lists[s].append(
-            center
-            - (center - midplane_points[s]).dot(midplane_normals[s])
-            * midplane_normals[s]
+            _midplane_projection(center, plane1, plane2)
         )
         density_lists[s].append(density)
 
@@ -125,6 +120,12 @@ def density_slices_by_planes(
         dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
         density_canvases.append(dc)
     return density_canvases
+
+
+def _midplane_projection(center, plane_a, plane_b):
+    a = center - (center - plane_a[0]).dot(plane_a[1]) * plane_a[1]
+    b = center - (center - plane_b[0]).dot(plane_b[1]) * plane_b[1]
+    return (a + b) / 2
 
 
 def _generate_slice_rotation_matrix(normal: NDArray):
