@@ -94,17 +94,17 @@ def density_slices_by_planes(
 
         idx_lists[s].append(ind)
         if s == 0:
-            plane1 = [origin, normals[s]]
-            plane2 = [slicing_planes[s][0, :], normals[s]]
+            a = origin
+            b = slicing_planes[s][0, :]
         elif 0 < s < len(slicing_planes):
-            plane1 = [slicing_planes[s - 1][0, :], normals[s - 1]]
-            plane2 = [slicing_planes[s][0, :], normals[s]]
+            a = slicing_planes[s - 1][0, :]
+            b = slicing_planes[s][0, :]
         else:
-            plane1 = [slicing_planes[s - 1][0, :], normals[s - 1]]
-            plane2 = [endpoint, normals[s - 1]]
+            a = slicing_planes[s - 1][0, :]
+            b = endpoint
 
         point_lists[s].append(
-            _midplane_projection(center, plane1, plane2)
+            _midplane_projection(center, a, b, midplane_normals[s])
         )
         density_lists[s].append(density)
 
@@ -122,9 +122,9 @@ def density_slices_by_planes(
     return density_canvases
 
 
-def _midplane_projection(center, plane_a, plane_b):
-    a = center - (center - plane_a[0]).dot(plane_a[1]) * plane_a[1]
-    b = center - (center - plane_b[0]).dot(plane_b[1]) * plane_b[1]
+def _midplane_projection(center, a, b, midplane_normal):
+    a = center - (center - a).dot(midplane_normal) * midplane_normal
+    b = center - (center - b).dot(midplane_normal) * midplane_normal
     return (a + b) / 2
 
 
