@@ -56,6 +56,19 @@ def density_slices_by_planes(
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
 
+    midplane_points = (
+        [(origin + slicing_planes[0][0, :]) / 2]
+        + [
+            (slicing_planes[s][0, :] + slicing_planes[s + 1][0, :]) / 2
+            for s in range(len(slicing_planes) - 1)
+        ]
+        + [
+            slicing_planes[-1][0, :]
+            + normals[-1][1]
+            * (endpoint - slicing_planes[-1][0, :]).dot(normals[-1][1])
+            / 2
+        ]
+    )
     midplane_normals = (
         [normals[0]]
         + [
@@ -104,14 +117,17 @@ def density_slices_by_planes(
             b = endpoint
 
         point_lists[s].append(
-            _midplane_projection(center, a, b, midplane_normals[s])
+            center
+            - (center - midplane_points[s]).dot(midplane_normals[s])
+            * midplane_normals[s]
         )
         density_lists[s].append(density)
 
     density_canvases = []
     for i in range(len(idx_lists)):
+        shape = [g for d, g in enumerate(density_grid.grid.shape) if d !=np.argmax(midplane_normals[i])]
         _, density_array = _shape_slice(
-            point_lists[i], density_lists[i], midplane_normals[i]
+            point_lists[i], density_lists[i], midplane_normals[i], midplane_points[i], shape,
         )
         length_x = density_grid.delta[0] * density_array.shape[0]
         length_y = density_grid.delta[1] * density_array.shape[1]
@@ -120,12 +136,6 @@ def density_slices_by_planes(
         dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
         density_canvases.append(dc)
     return density_canvases
-
-
-def _midplane_projection(center, a, b, midplane_normal):
-    a = center - (center - a).dot(midplane_normal) * midplane_normal
-    b = center - (center - b).dot(midplane_normal) * midplane_normal
-    return (a + b) / 2
 
 
 def _generate_slice_rotation_matrix(normal: NDArray):
@@ -181,8 +191,8 @@ def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
         point_list.append(p)
         density_list.append(np.array(d))
 
-    m = max([len(p) for p in point_list])
-    n = len(point_list)
+    m = shape[0]
+    n = shape[1]
     points_array = np.zeros((m, n, 3))
     density_array = np.zeros((m, n))
 
