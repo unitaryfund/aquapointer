@@ -23,7 +23,8 @@ release = '0.1.0'
 
 sys.path.append(os.path.abspath("sphinxext"))
 extensions = [ "sphinx.ext.autodoc",
-            "sphinx.ext.autosummary"
+            "sphinx.ext.autosummary",
+            "sphinx_autodoc_typehints"
             ]
 
 master_doc = "index"
