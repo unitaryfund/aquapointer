@@ -47,24 +47,15 @@ def density_slices_by_planes(
     for s in slicing_planes:
         u = (s[1, :] - s[0, :]) / norm(s[1, :] - s[0, :])
         v = (s[2, :] - s[0, :]) / norm(s[2, :] - s[0, :])
-        normals.append(np.cross(u, v))
+        n = np.cross(u, v)
+        if np.dot(n, np.ones(3,)) >= 0:
+            normals.append(n / np.linalg.norm(n))
+        else:
+            normals.append(-n / np.linalg.norm(n))
 
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
 
-    midplane_points = (
-        [(origin + slicing_planes[0][0, :]) / 2]
-        + [
-            (slicing_planes[s][0, :] + slicing_planes[s + 1][0, :]) / 2
-            for s in range(len(slicing_planes) - 1)
-        ]
-        + [
-            slicing_planes[-1][0, :]
-            + normals[-1][1]
-            * (endpoint - slicing_planes[-1][0, :]).dot(normals[-1][1])
-            / 2
-        ]
-    )
     midplane_normals = (
         [normals[0]]
         + [
@@ -102,16 +93,24 @@ def density_slices_by_planes(
                     break
 
         idx_lists[s].append(ind)
+        if s == 0:
+            a = origin
+            b = slicing_planes[s][0, :]
+        elif 0 < s < len(slicing_planes):
+            a = slicing_planes[s - 1][0, :]
+            b = slicing_planes[s][0, :]
+        else:
+            a = slicing_planes[s - 1][0, :]
+            b = endpoint
+
         point_lists[s].append(
-            center
-            - (center - midplane_points[s]).dot(midplane_normals[s])
-            * midplane_normals[s]
+            _midplane_projection(center, a, b, midplane_normals[s])
         )
         density_lists[s].append(density)
 
     density_canvases = []
     for i in range(len(idx_lists)):
-        points_array, density_array = _shape_slice(
+        _, density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i]
         )
         length_x = density_grid.delta[0] * density_array.shape[0]
@@ -121,6 +120,12 @@ def density_slices_by_planes(
         dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
         density_canvases.append(dc)
     return density_canvases
+
+
+def _midplane_projection(center, a, b, midplane_normal):
+    a = center - (center - a).dot(midplane_normal) * midplane_normal
+    b = center - (center - b).dot(midplane_normal) * midplane_normal
+    return (a + b) / 2
 
 
 def _generate_slice_rotation_matrix(normal: NDArray):
@@ -150,7 +155,7 @@ def _generate_slice_rotation_matrix(normal: NDArray):
     )
     return Rn
 
-def _shape_slice(points: NDArray, density, normal: NDArray):
+def _shape_slice(points: NDArray, density: NDArray, normal: NDArray):
     """Arrange lists of coordinates and density values into 2D arrays."""
     Rn = _generate_slice_rotation_matrix(normal)
     x_prime = Rn @ np.array([1, 0, 0])
