@@ -3,56 +3,62 @@
 # This source code is licensed under the GPL license (v3) found in the
 # LICENSE file in the root directory of this source tree.
 
+
 import numpy as np
 from qiskit.primitives import BackendSampler
 from qiskit import QuantumCircuit
-
 from scipy.optimize import minimize
 from aquapointer.digital.qubo_utils import ising_energy
 
 class VQE:
-    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray, prob_opt_sol: bool=True) -> None:
+    def __init__(self, qubo: np.ndarray, ansatz: QuantumCircuit, sampler: BackendSampler, params: np.ndarray = None, track_opt_solution: bool = True) -> None:
+        """
+        Initializes the VQE instance.
+
+        Args:
+            qubo (np.ndarray): The QUBO matrix for the problem.
+            ansatz (QuantumCircuit): The quantum circuit used as the ansatz.
+            sampler (BackendSampler): The sampler backend for running quantum circuits.
+            params (np.ndarray, optional): Initial parameters for the ansatz. If None, random parameters are used.
+            track_opt_solution (bool, optional): If True, track the probability of the optimal solution. Default is True.
+        """
         self.qubo = qubo
         self.ansatz = ansatz
         self.sampler = sampler
-
-        if params.any():
-            self.params = params
-        else:
-            self.params = np.array([np.random.random()]*self.ansatz.num_parameters)
-
+        self.params = params if params is not None else np.random.random(ansatz.num_parameters)
         self.r = 0.1
-        self.prob_opt_sol = prob_opt_sol
+        self.track_opt_solution = track_opt_solution
         self.history = []
 
-    def run(self, alpha: float, maxiter: int, method="COBYLA"):
-        r""" Runs the minization.
+    def run(self, alpha: float, maxiter: int, method: str = "COBYLA"):
+        """
+        Runs the optimization.
 
         Args:
-            alpha: Confidence level.
-            maxiter: Maximum number of iterations.
-            method: Method for updating parameters.
+            alpha (float): Confidence level.
+            maxiter (int): Maximum number of iterations.
+            method (str, optional): Method for updating parameters. Default is "COBYLA".
         
         Returns:
-            Result from running scipy.optimize.minimize.
+            OptimizeResult: Result from running scipy.optimize.minimize.
         """
-        res = minimize(self.cvar_energy, self.params, args=(alpha, ), method=method, tol=1e-8, options={"maxiter": maxiter})
+        res = minimize(self.cvar_energy, self.params, args=(alpha,), method=method, tol=1e-8, options={"maxiter": maxiter})
         self.params = res.x
         return res
-           
+
     def _compute_cvar(self, probabilities: np.ndarray, values: np.ndarray, confidence_level: float) -> float:
-        r""" Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
+        """
+        Compute Conditional Value at Risk (CVaR) for given probabilities, values, and confidence level.
 
         Args:
-            probabilities: List or array of probabilities
-            values: List or array of corresponding values
-            confidence_level: Confidence level (e.g., 0.95 for 95% confidence)
+            probabilities (np.ndarray): Array of probabilities.
+            values (np.ndarray): Array of corresponding values.
+            confidence_level (float): Confidence level (e.g., 0.95 for 95% confidence).
 
         Returns:
-            CVaR
+            float: Computed CVaR.
         """
-
-        # Sort values in ascending order
+        # Sort values in ascending order along with their probabilities
         sorted_indices = np.argsort(values)
         sorted_values = values[sorted_indices]
         sorted_probabilities = probabilities[sorted_indices]
@@ -64,11 +70,10 @@ class VQE:
         # Calculate CVaR
         cvar_values = sorted_values[:exceed_index + 1]
         cvar_probabilities = sorted_probabilities[:exceed_index + 1]
-
         cvar = np.sum(cvar_values * cvar_probabilities) / np.sum(cvar_probabilities)
 
         return cvar
-    
+
     def cvar_energy(self, params: np.ndarray, alpha: float) -> float:
         r""" Function that takes parameters to bind to the ansatz and confidence level
         alpha, to compute the cvar energy (by sampling the ansatz and computing cvar).
@@ -117,10 +122,15 @@ class VQE:
             factor = 1 + self.r
 
         # now obtain the energies that are 10% close to optimal
+        # eps_rel_energies = []
+        # for i, val in enumerate(sorted_values):
+        #     if val <= factor * opt_energy: 
+        #         eps_rel_energies.append(i)
+
+        # I want the average energy for now
         eps_rel_energies = []
         for i, val in enumerate(sorted_values):
-            if val <= factor * opt_energy:
-                eps_rel_energies.append(i)
+            eps_rel_energies.append(i)
 
         opt_b = sorted_keys[0]
         opt_prob = sorted_probs[0]
@@ -130,8 +140,8 @@ class VQE:
         top_opt_prob = np.sum(sorted_probs[eps_rel_energies])
         avg_top_energies = np.mean(sorted_probs[eps_rel_energies]*sorted_values[eps_rel_energies])
 
-        # save intermediate optimal bitsting and energy to self.history
-        if self.prob_opt_sol:
+        # save intermediate optimal bitstring and energy to self.history
+        if self.track_opt_solution:
             self.history.append([opt_b, np.round(opt_prob,7), opt_energy])
         else:
             self.history.append([np.round(top_opt_prob, 7), avg_top_energies])
