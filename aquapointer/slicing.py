@@ -155,7 +155,7 @@ def _generate_slice_rotation_matrix(normal: NDArray):
     )
     return Rn
 
-def _shape_slice(points: NDArray, density: NDArray, normal: NDArray):
+def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
     """Arrange lists of coordinates and density values into 2D arrays."""
     Rn = _generate_slice_rotation_matrix(normal)
     x_prime = Rn @ np.array([1, 0, 0])
@@ -166,15 +166,15 @@ def _shape_slice(points: NDArray, density: NDArray, normal: NDArray):
     density_list = []
 
     for _, yp_group in groupby(
-        sorted(zip(points, density), key=lambda y: y[0].dot(y_prime)),
-        key=lambda g: g[0].dot(y_prime),
+        sorted(zip(points, density), key=lambda y: (y[0]-ref_pt).dot(y_prime)),
+        key=lambda g: (g[0]-ref_pt).dot(y_prime),
     ):
         # project points onto x' and sort indices of projected points
         p = []
         d = []
-        yp_list = sorted(list(yp_group), key=lambda g: g[0].dot(x_prime))
+        yp_list = sorted(list(yp_group), key=lambda g: (g[0]-ref_pt).dot(x_prime))
 
-        for _, xp_group in groupby(yp_list, key=lambda x: x[0].dot(x_prime)):
+        for _, xp_group in groupby(yp_list, key=lambda x: (x[0]-ref_pt).dot(x_prime)):
             xp_list = list(xp_group)
             p.append(list(xp_list)[0][0])
             d.append(np.mean(np.array(list(zip(*xp_list))[1])))
