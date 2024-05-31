@@ -171,9 +171,6 @@ def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
     x_prime = Rn @ np.array([1, 0, 0])
     y_prime = Rn @ np.array([0, 1, 0])
 
-    m = shape[0]
-    n = shape[1]
-    density_array = np.zeros((m, n))
     # project points onto x', y'
     points = [np.array([(p-ref_pt).dot(x_prime), (p-ref_pt).dot(y_prime)]) for p in points]
     density_list = []
@@ -181,8 +178,8 @@ def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
     if abs(normal.dot([0, 0, 1])) not in [0.0, 1.0]:
         x_sort = sorted(points, key=lambda x: x[0])
         y_sort = sorted(points, key=lambda y: y[1])
-        dx = (x_sort[-1][0] - x_sort[0][0]) / m
-        dy = (y_sort[-1][1] - y_sort[0])[1] / n
+        dx = (x_sort[-1][0] - x_sort[0][0]) / shape[0]
+        dy = (y_sort[-1][1] - y_sort[0])[1] / shape[1]
         snapped_pts = []
         for p in points:
             ix = p[0] // dx
@@ -203,7 +200,9 @@ def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
             xp_list = list(xp_group)
             d.append(np.mean(np.array(list(zip(*xp_list))[1])))
         density_list.append(np.array(d))
-
+        m = max([len(density) for density in density_list])
+        n = len(density_list)
+    density_array = np.zeros((m, n))
     for j in range(n):
         i = int((m - len(density_list[j])) / 2)
         density_array[i : i + len(density_list[j]), j] = density_list[j]
