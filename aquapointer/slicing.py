@@ -207,27 +207,6 @@ def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
     for j in range(n):
         i = int((m - len(density_list[j])) / 2)
         density_array[i : i + len(density_list[j]), j] = density_list[j]
-    
-    # else:
-        # x_sort = sorted(enumerate(list(zip(points, density))), key=lambda x: (x[1][0]-ref_pt).dot(x_prime))
-        # y_sort = sorted(enumerate(list(zip(points, density))), key=lambda y: (y[1][0]-ref_pt).dot(y_prime))
-        # yg = list(np.concatenate(list(groupby(y_sort, key=lambda y: (y[0]-ref_pt).dot(y_prime)))))
-        # yg_avg = bar(yg) # turn above grouping and avging into fn and call here
-        # y_avg_flat= list(np.concatenate(yg_avg))
-    
-        # if len(y_sort) > m * n:
-        #     average(closest_values)
-        # density_array[0, 0] =  y_sort[0][1]
-        # density_array[m, n] =  y_sort[m][1]
-      
-        # for a, j, y in enumerate(y_sort):
-        #     dy = y_sort[]
-        #     if dy > dx:
-        #         density_array[i, j] = density_list[a]
-        #         density_list = density_list[:a].append(density_list[a + 1:])
-        # if len(x_sort) > m*n:
-        #     x_sort = x_sort[int((len(x_sort) - m * n) / 2) : m * n + int((len(x_sort) - m * n/2))]
-        # density_array = np.reshape(list(zip(* x_sort))[1], (m,n))
 
     return density_array
 
