@@ -126,7 +126,7 @@ def density_slices_by_planes(
     density_canvases = []
     for i in range(len(idx_lists)):
         shape = [g for d, g in enumerate(density_grid.grid.shape) if d !=np.argmax(midplane_normals[i])]
-        _, density_array = _shape_slice(
+        density_array = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i], midplane_points[i], shape,
         )
         length_x = density_grid.delta[0] * density_array.shape[0]
@@ -171,37 +171,65 @@ def _shape_slice(points: NDArray, density, normal: NDArray, ref_pt, shape):
     x_prime = Rn @ np.array([1, 0, 0])
     y_prime = Rn @ np.array([0, 1, 0])
 
-    # project points onto y' and group indices of projected points
-    point_list = []
+    m = shape[0]
+    n = shape[1]
+    density_array = np.zeros((m, n))
+    # project points onto x', y'
+    points = [np.array([(p-ref_pt).dot(x_prime), (p-ref_pt).dot(y_prime)]) for p in points]
     density_list = []
+    
+    if abs(normal.dot([0, 0, 1])) not in [0.0, 1.0]:
+        x_sort = sorted(points, key=lambda x: x[0])
+        y_sort = sorted(points, key=lambda y: y[1])
+        dx = (x_sort[-1][0] - x_sort[0][0]) / m
+        dy = (y_sort[-1][1] - y_sort[0])[1] / n
+        snapped_pts = []
+        for p in points:
+            ix = p[0] // dx
+            iy = p[1] // dy
+            snapped_pts.append(np.array([ix * dx, iy * dy]) + np.array([x_sort[0][0], y_sort[0][1]]))
+        points = snapped_pts
 
     for _, yp_group in groupby(
-        sorted(zip(points, density), key=lambda y: (y[0]-ref_pt).dot(y_prime)),
-        key=lambda g: (g[0]-ref_pt).dot(y_prime),
+        sorted(zip(points, density), key=lambda y: y[0][1]),
+        key=lambda g: g[0][1],
     ):
         # project points onto x' and sort indices of projected points
         p = []
         d = []
-        yp_list = sorted(list(yp_group), key=lambda g: (g[0]-ref_pt).dot(x_prime))
+        yp_list = sorted(list(yp_group), key=lambda g: g[0][0])
 
-        for _, xp_group in groupby(yp_list, key=lambda x: (x[0]-ref_pt).dot(x_prime)):
+        for _, xp_group in groupby(yp_list, key=lambda x: x[0][0]):
             xp_list = list(xp_group)
-            p.append(list(xp_list)[0][0])
             d.append(np.mean(np.array(list(zip(*xp_list))[1])))
-        point_list.append(p)
         density_list.append(np.array(d))
 
-    m = shape[0]
-    n = shape[1]
-    points_array = np.zeros((m, n, 3))
-    density_array = np.zeros((m, n))
-
     for j in range(n):
-        i = int((m - len(point_list[j])) / 2)
-        points_array[i : i + len(point_list[j]), j, :] = point_list[j]
-        density_array[i : i + len(point_list[j]), j] = density_list[j]
+        i = int((m - len(density_list[j])) / 2)
+        density_array[i : i + len(density_list[j]), j] = density_list[j]
+    
+    # else:
+        # x_sort = sorted(enumerate(list(zip(points, density))), key=lambda x: (x[1][0]-ref_pt).dot(x_prime))
+        # y_sort = sorted(enumerate(list(zip(points, density))), key=lambda y: (y[1][0]-ref_pt).dot(y_prime))
+        # yg = list(np.concatenate(list(groupby(y_sort, key=lambda y: (y[0]-ref_pt).dot(y_prime)))))
+        # yg_avg = bar(yg) # turn above grouping and avging into fn and call here
+        # y_avg_flat= list(np.concatenate(yg_avg))
+    
+        # if len(y_sort) > m * n:
+        #     average(closest_values)
+        # density_array[0, 0] =  y_sort[0][1]
+        # density_array[m, n] =  y_sort[m][1]
+      
+        # for a, j, y in enumerate(y_sort):
+        #     dy = y_sort[]
+        #     if dy > dx:
+        #         density_array[i, j] = density_list[a]
+        #         density_list = density_list[:a].append(density_list[a + 1:])
+        # if len(x_sort) > m*n:
+        #     x_sort = x_sort[int((len(x_sort) - m * n) / 2) : m * n + int((len(x_sort) - m * n/2))]
+        # density_array = np.reshape(list(zip(* x_sort))[1], (m,n))
 
-    return points_array, density_array
+    return density_array
 
 
 def density_origin(density_grid: Grid) -> NDArray:
