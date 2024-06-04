@@ -10,6 +10,7 @@ import scipy
 from numpy.typing import NDArray
 from pulser import Sequence
 
+from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 from aquapointer.analog.density_mapping import rescaled_positions_to_3d_map
 from aquapointer.analog.qubo_solution import default_cost, fit_gaussian, run_qubo
 from aquapointer.analog_digital.processor import Processor
@@ -20,8 +21,7 @@ cavity."""
 
 
 def find_water_positions(
-    densities: List[NDArray],
-    points: List[NDArray],
+    density_canvases: List[DensityCanvas],
     executor: Callable[[Sequence, int], Any],
     processor_configs: List[Processor],
     num_samples: int = 1000,
@@ -35,8 +35,7 @@ def find_water_positions(
     arrays of density values of the cavity.
 
     Args:
-        densities: List of density slices of the protein cavity as 2-D arrays of density values.
-        points: List of arrays containing coordinates corresponding to each element of the density arrays.
+        density_canvases: List of density canvas objects containing density and geometry info of the protein cavity.
         executor: Function that executes a pulse sequence on a quantum backend.
         processor_configs: List of ``Processor`` objects storing settings for running on a quantum backend.
         num_samples: Number of times to execute the quantum experiment or simulation on the backend.
@@ -50,7 +49,7 @@ def find_water_positions(
     """
     
     bitstrings = []
-    for k, d in enumerate(densities):
+    for k, d in enumerate([dc._density for dc in density_canvases]):
         params = [58, 0, 0, 48.2]
         variance, amplitude = params[0], params[3]
         bitstrings.append(
@@ -73,7 +72,7 @@ def find_water_positions(
     # from the indices find the water molecule positions in angstroms
     for i, slice in enumerate(water_indices):
         for idx_i, idx_j in slice:
-            water_positions.append(points[i][idx_i, idx_j])
+            water_positions.append(density_canvases[i]._pos[idx_i, idx_j])
     if not location_clustering:
         return water_positions
 
