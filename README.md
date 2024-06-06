@@ -11,6 +11,9 @@ Package applying quantum algorithms to find locations of water molecules in a pr
 ## Getting started
 You can use [this notebook](notebooks/aquapointer_demo.ipynb) to get started with aquapointer.
 
+Alternatively, if you prefer to run from Docker, you can use the command: `$ docker run -it --rm --name my-running-script -v "$PWD":/usr/src/myapp -w /usr/src/myapp python:3 python your-daemon-or-script.py` 
+
+
 ## Installing aquapointer
 From the top level of the repository, where the `setup.py` file is found, just run
 ```
