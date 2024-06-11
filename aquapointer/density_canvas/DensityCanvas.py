@@ -632,6 +632,76 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
 
+    def calculate_detunings(self, C6=5420158.53):
+        """Calculates the detunings as a function of the linear coefficients.
+        The argument is the rydberg interaction coefficient C6 (default one is that
+        of rydberg level n=70)"""
+
+        linear = {k: v for (k,), v in self._pubo["coeffs"][1].items()}
+        quadratic = {k: -v for k, v in self._pubo["coeffs"][2].items()}
+        coords = np.array(self._lattice._coords)
+        
+        # calculate rydberg interaction terms
+        rydberg = {}
+        for i in range(len(linear)):
+            for j in range(i+1, len(linear)):
+                dij = np.linalg.norm(coords[i]-coords[j])
+                rydberg[(i,j)] = C6/dij**6
+
+        # calculate distances per qubit
+        distances = {}
+        for i in range(len(linear)):
+            all_d = []
+            for j in range(len(linear)):
+                if i==j:
+                    continue
+                dij = np.linalg.norm(coords[i]-coords[j])
+                all_d.append((j, dij))
+            distances[i] = sorted(all_d, key=lambda x: x[1], reverse=True)
+
+        # calcualte threshold distances (when sum of interactions win over linear coeff)
+        threshold_distances = {}
+        for i in linear.keys():
+            res = 0
+            for j, dij in distances[i]:
+                if i<j:
+                    val = quadratic[(i,j)]
+                else:
+                    val = quadratic[(j,i)]
+                res += val
+                if res > linear[i]:
+                    threshold_distances[i] = dij
+                    break
+
+        # calculate sum of interactions
+        sum_quadratic = np.zeros(len(linear))
+        sum_rydberg = np.zeros(len(linear))
+        for idx, i in enumerate(linear.keys()):
+            res_q = 0
+            num_q = 0
+            res_i = 0
+            num_i = 0
+            for pair, val in quadratic.items():
+                if i in pair:
+                    d10 = np.linalg.norm(coords[pair[0]]-coords[pair[1]])
+                    if d10 < threshold_distances[i]:
+                        continue
+                    res_q += val
+                    num_q += 1
+            for pair, val in rydberg.items():
+                if i in pair:
+                    d10 = np.linalg.norm(coords[pair[0]]-coords[pair[1]])
+                    if d10 < threshold_distances[i]:
+                        continue
+                    res_i += val
+                    num_i += 1
+            sum_quadratic[idx] = res_q/num_q 
+            sum_rydberg[idx] = res_i/num_i
+            
+        alpha = np.mean(sum_rydberg)/np.mean(sum_quadratic)
+
+        return {k: alpha*v for k,v in linear.items()}
+
     def plotting_objects(
         self,
         figsize=(10, 8),
