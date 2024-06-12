@@ -19,3 +19,5 @@ WORKDIR /root/aquapointer
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+
+CMD [ "python", "analog/automated_analog_flow.py" ]
