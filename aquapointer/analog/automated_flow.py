@@ -13,14 +13,14 @@ def rism_to_locations(rism_file, settings_file):
     # load settings file containing processor settings and slcing points
     settings = open(settings_file, "r")
     settings_contents = settings.readlines()
-    if settings_contents[1].split()[0] == "True":
-        crop_settings = settings_contents[1].split()[1:]
+    if settings_contents[3].split()[0] == "True":
+        crop_settings = settings_contents[3].split()[1:]
         center = (float(crop_settings[0]), float(crop_settings[1]))
         size = (float(crop_settings[2]), float(crop_settings[3]))
-        slicing_points_lines = settings_contents[2:]
+        slicing_points_lines = settings_contents[4:]
     else:
         crop_settings = None
-        slicing_points_lines = settings_contents[1:]
+        slicing_points_lines = settings_contents[3:]
 
     slicing_points = []
     for line in slicing_points_lines:
@@ -32,6 +32,27 @@ def rism_to_locations(rism_file, settings_file):
     if crop_settings:
         [c.crop_canvas(center, size) for c in canvases]
 
+
+    # Define a lattice
+    lattice_settings = settings_contents[2].split()
+    if lattice_settings[0] == "poisson":
+        spacing = float(lattice_settings[3]), float(lattice_settings[4])
+        [c.set_poisson_disk_lattice(spacing) for c in canvases]
+
+        
+    elif lattice_settings[0] == "rectangular":
+        num_x = int(lattice_settings[1])
+        num_y = int(lattice_settings[2])
+        spacing = tuple(map(float, lattice_settings[3:5]))
+        [c.set_rectangular_lattice(num_x, num_y, spacing) for c in canvases]
+
+    amplitude = float(settings_contents[1].split()[0])
+    variance = float(settings_contents[1].split()[1])
+    [c.calculate_pubo_coefficients(2, [amplitude, variance]) for c in canvases]
+
+    if len(lattice_settings) == 6:
+        size = int(lattice_settings[-1])
+        [c.force_lattice_size(size) for c in canvases]
 
     # import registers
     positions = []
@@ -53,6 +74,7 @@ def rism_to_locations(rism_file, settings_file):
     omega = float(pulse_params[1])
     max_det = float(pulse_params[2])
     pulse_duration = float(pulse_params[3])
+
 
     pulse_settings = processor.PulseSettings(brad, omega, pulse_duration, max_det)
     processor_configs = [processor.AnalogProcessor(device=MockDevice, pos=pos, pos_id=p, pulse_settings=pulse_settings) for p, pos in enumerate(positions)]

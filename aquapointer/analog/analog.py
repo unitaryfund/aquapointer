@@ -6,13 +6,13 @@
 
 from typing import Any, Callable, List, Optional
 
+import numpy as np
 import scipy
 from numpy.typing import NDArray
 from pulser import Sequence
 
 from aquapointer.density_canvas.DensityCanvas import DensityCanvas
-from aquapointer.analog.density_mapping import rescaled_positions_to_3d_map
-from aquapointer.analog.qubo_solution import default_cost, fit_gaussian, run_qubo
+from aquapointer.analog.qubo_solution import fit_gaussian, run_qubo
 from aquapointer.analog_digital.processor import Processor
 
 
@@ -25,11 +25,8 @@ def find_water_positions(
     executor: Callable[[Sequence, int], Any],
     processor_configs: List[Processor],
     num_samples: int = 1000,
-    qubo_cost: Callable[
-        [NDArray, NDArray, float, str, float, float], float
-    ] = default_cost,
     location_clustering: Optional[Callable[[List[List[float]]], List[Any]]] = None,
-) -> List[List[float]]:
+) -> List[NDArray]:
 
     r"""Finds the locations of water molecules in a protein cavity from 2-D
     arrays of density values of the cavity.
@@ -47,36 +44,26 @@ def find_water_positions(
         List of 3-D coordinates of the locations of water molecules in the
             protein cavity.
     """
-    
     bitstrings = []
-    for k, d in enumerate([dc._density for dc in density_canvases]):
+    coords = []
+    for k, d in enumerate(density_canvases):
         params = [58, 0, 0, 48.2]
         variance, amplitude = params[0], params[3]
-        bitstrings.append(
-            run_qubo(
+        bitstring = run_qubo(
                 d,
                 executor,
                 processor_configs[k],
                 variance,
                 amplitude,
-                qubo_cost,
                 num_samples,
             )
-        )
+        bitstrings.append(bitstring)
+        if '1' not in bitstring:
+            continue
+        coords.append([c for i,c in enumerate(d._lattice._coords) if int(bitstring[i])])
+        
+    return np.array(sum(coords, []))
 
-    water_indices = rescaled_positions_to_3d_map(
-        bitstrings, [p.scale_grid_to_register() for p in processor_configs]
-    )
-    water_positions = []
-
-    # from the indices find the water molecule positions in angstroms
-    for i, slice in enumerate(water_indices):
-        for idx_i, idx_j in slice:
-            water_positions.append(density_canvases[i]._pos[idx_i, idx_j])
-    if not location_clustering:
-        return water_positions
-
-    return location_clustering(water_positions)
 
 
 def location_clustering_kmeans(water_positions: List[List[float]]) -> List[List[float]]:
