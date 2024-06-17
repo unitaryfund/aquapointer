@@ -251,7 +251,8 @@ class DensityCanvas:
         self.clear_density()
         self.clear_pubo()
         slice_filter = filter_settings.pop("filter_function")
-        self._density = slice_filter(slice, **filter_settings)
+        sigma = filter_settings.pop("sigma")
+        self._density = slice_filter(slice, sigma, **filter_settings)
         self._empty = False
         self._density_type = density_type
 

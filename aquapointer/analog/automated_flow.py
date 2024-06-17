@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.ndimage as ndi
 from pulser import Register
 from pulser.devices import MockDevice
 from pulser_simulation import QutipBackend
@@ -31,7 +32,11 @@ def rism_to_locations(rism_file, settings_file):
 
     if crop_settings:
         [c.crop_canvas(center, size) for c in canvases]
+    
+    def filter_fn(x, sigma):
+        return -ndi.gaussian_laplace(x, sigma)
 
+    [c.filter_density(filter_settings={"filter_function": filter_fn, "sigma": 0.5}) for c in canvases]
 
     # Define a lattice
     lattice_settings = settings_contents[2].split()
