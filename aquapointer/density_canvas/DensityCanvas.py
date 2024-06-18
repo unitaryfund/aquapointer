@@ -354,7 +354,10 @@ class DensityCanvas:
         self.set_lattice(lattice, centering=True)
 
     def set_canvas_rotation(self, rotation: ArrayLike):
-        self.canvas_rotation = rotation
+        self._rotation = rotation
+
+    def set_canvas_ref_point(self, ref_point: ArrayLike):
+        self._ref_point = ref_point
 
     def clear_lattice(self):
         try:
@@ -795,3 +798,6 @@ class DensityCanvas:
             draw_connections,
         )
         plt.show()
+
+    def _set_water_coords_from_qubo(self, coords):
+        self._coords = coords

@@ -134,6 +134,7 @@ def density_slices_by_planes(
         dc = DensityCanvas(origin, length_x, length_y, density_array.shape[0], density_array.shape[1])
         dc.set_density_from_slice(density_array.transpose())
         dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
+        dc.set_canvas_ref_point(midplane_points[i])
         density_canvases.append(dc)
     return density_canvases
 

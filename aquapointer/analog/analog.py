@@ -46,26 +46,26 @@ def find_water_positions(
             protein cavity.
     """
     bitstrings = []
-    coords = []
+    rism_coords = []
     for d in density_canvases:
         params = [58, 0, 0, 48.2]
         variance, amplitude = params[0], params[3]
-        bitstring = run_qubo(
-                d,
-                executor,
-                device,
-                pulse_settings,
-                variance,
-                amplitude,
-                num_samples,
-            )
+        bitstring = run_qubo(d, executor, device, pulse_settings, variance, amplitude, num_samples)
         bitstrings.append(bitstring)
+        coords = []
         if '1' not in bitstring:
             continue
-        coords.append([c for i,c in enumerate(d._lattice._coords) if int(bitstring[i])])
-        
-    return np.array(sum(coords, []))
+        for i,c in enumerate(d._lattice._coords):
+            if int(bitstring[i]):
+                coords.append(c)
+                rism_coords.append(transform_to_3d_rism_coords(c, d))
+        d._set_water_coords_from_qubo(coords)
+    return np.array(rism_coords)
 
+
+def transform_to_3d_rism_coords(coords, canvas: DensityCanvas):
+    rot_coords = (canvas._rotation) @ np.array([coords[1], coords[0], 0])
+    return rot_coords + canvas._ref_point
 
 
 def location_clustering_kmeans(water_positions: List[List[float]]) -> List[List[float]]:
