@@ -1,5 +1,7 @@
 # Using the automated script with 3D-RISM input and settings text file
-The script `./aquapointer/analog/automated_flow.py` enables execution of the analog workflow from the CLI.  The user must specify a 3D-RISM file and a settings file as input to `rism_to_locations()` in  `./aquapointer/analog/automated_flow.py`. For example, (as in  `./aquapointer/analog/automated_flow.py`):
+The script `./aquapointer/analog/automated_flow.py` enables execution of the analog workflow from the CLI.
+The user must specify a 3D-RISM file and a settings file as input to `rism_to_locations()` in  `./aquapointer/analog/automated_flow.py`.
+For example, (as in  `./aquapointer/analog/automated_flow.py`):
 
 ```python
     main_folder = "data"
@@ -36,11 +38,11 @@ For now, the script strictly requires the following parameters in the following 
     - amplitude 
     - variance
 4. Density filtering (Optional):
-    - "filter": keyword indicating the settings on this line are for filtering
+    - "filter": keyword indicating the settings on this line are for filtering, since filtering is optional
     - filter function: only Gaussian-Laplacian supported in current version of script
     - sigma standard deviation of the Gaussian filter
 5. Cropping (Optional):
-    - "crop": keyword indicating the settings on this line are for cropping
+    - "crop": keyword indicating the settings on this line are for cropping, since croppping is optional
     - x_coordinate of center of cropped slice
     - y_coordinate of center of cropped slice
     - length of cropped slice in x
