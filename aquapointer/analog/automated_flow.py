@@ -14,12 +14,26 @@ def rism_to_locations(rism_file, settings_file):
     # load settings file containing processor settings and slcing points
     settings = open(settings_file, "r")
     settings_contents = settings.readlines()
-    if settings_contents[3].split()[0] == "True":
+    pulse_params = settings_contents[0].split()
+    amplitude = float(settings_contents[1].split()[0])
+    variance = float(settings_contents[1].split()[1])
+    lattice_settings = settings_contents[2].split()
+
+    if settings_contents[3].split()[0] == "filter":
+        filter_settings = settings_contents[3].split()[1:]
+        if settings_contents[4].split()[0] == "crop":
+            crop_settings = settings_contents[4].split()[1:]
+            slicing_points_lines = settings_contents[5:]
+        else:
+            crop_settings = None
+            slicing_points_lines = settings_contents[4:]
+    elif settings_contents[3].split()[0] == "crop":
+        filter_settings = None
         crop_settings = settings_contents[3].split()[1:]
-        center = (float(crop_settings[0]), float(crop_settings[1]))
-        size = (float(crop_settings[2]), float(crop_settings[3]))
         slicing_points_lines = settings_contents[4:]
+
     else:
+        filter_settings = None
         crop_settings = None
         slicing_points_lines = settings_contents[3:]
 
@@ -31,28 +45,46 @@ def rism_to_locations(rism_file, settings_file):
     canvases = density_slices_by_planes(grid, slicing_points)
 
     if crop_settings:
+        center = (float(crop_settings[0]), float(crop_settings[1]))
+        size = (float(crop_settings[2]), float(crop_settings[3]))
         [c.crop_canvas(center, size) for c in canvases]
     
-    def filter_fn(x, sigma):
-        return -ndi.gaussian_laplace(x, sigma)
+    if filter_settings:
+        if filter_settings[0] == "gaussian-laplace":
+            filter_fn = lambda x, sigma: -ndi.gaussian_laplace(x, sigma)
+            sigma = float(filter_settings[1])
 
-    [c.filter_density(filter_settings={"filter_function": filter_fn, "sigma": 0.5}) for c in canvases]
+    [c.filter_density(filter_settings={"filter_function": filter_fn, "sigma": sigma}) for c in canvases]
 
     # Define a lattice
-    lattice_settings = settings_contents[2].split()
-    if lattice_settings[0] == "poisson":
+    if lattice_settings[0] == "poisson-disk":
         spacing = float(lattice_settings[3]), float(lattice_settings[4])
         [c.set_poisson_disk_lattice(spacing) for c in canvases]
 
-        
     elif lattice_settings[0] == "rectangular":
         num_x = int(lattice_settings[1])
         num_y = int(lattice_settings[2])
         spacing = tuple(map(float, lattice_settings[3:5]))
         [c.set_rectangular_lattice(num_x, num_y, spacing) for c in canvases]
 
-    amplitude = float(settings_contents[1].split()[0])
-    variance = float(settings_contents[1].split()[1])
+    elif lattice_settings[0] == "triangular":
+        nrows = int(lattice_settings[1])
+        ncols = int(lattice_settings[2])
+        spacing = tuple(map(float, lattice_settings[3:5]))
+        [c.set_triangular_lattice(nrows, ncols, spacing) for c in canvases]
+
+    elif lattice_settings[0] == "hexagonal":
+        nrows = int(lattice_settings[1])
+        ncols = int(lattice_settings[2])
+        spacing = tuple(map(float, lattice_settings[3:5]))
+        [c.set_hexagonal_lattice(nrows, ncols, spacing) for c in canvases]
+
+    else:
+        raise ValueError("""
+            lattice must be specified as one of the following supported lattice types: 
+            poisson-disk, rectangular, triangular, or hexagonal.
+        """)
+
     [c.calculate_pubo_coefficients(2, [amplitude, variance]) for c in canvases]
 
     if len(lattice_settings) == 6:
@@ -74,13 +106,10 @@ def rism_to_locations(rism_file, settings_file):
         with open(f'aquapointer/analog/registers/rescaled_position_{i}.npy', 'rb') as file_in:
             res_pos = np.load(file_in)
         rescaled_positions.append(res_pos)
-    pulse_params = settings_contents[0].split()
     brad = float(pulse_params[0])
     omega = float(pulse_params[1])
     max_det = float(pulse_params[2])
     pulse_duration = float(pulse_params[3])
-
-
     pulse_settings = processor.PulseSettings(brad, omega, pulse_duration, max_det)
     processor_configs = [processor.AnalogProcessor(device=MockDevice, pos=pos, pos_id=p, pulse_settings=pulse_settings) for p, pos in enumerate(positions)]
     test_water_postions = find_water_positions(canvases, executor, processor_configs)
