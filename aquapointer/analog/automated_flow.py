@@ -40,20 +40,23 @@ def rism_to_locations(rism_file, settings_file):
     for line in slicing_points_lines:
         sp_list = [float(s) for s in line.split()]
         slicing_points.append(np.array([sp_list[0:3], sp_list[3:6], sp_list[6:]]))
-    
+
     canvases = density_slices_by_planes(grid, slicing_points)
 
     if crop_settings:
         center = (float(crop_settings[0]), float(crop_settings[1]))
         size = (float(crop_settings[2]), float(crop_settings[3]))
         [c.crop_canvas(center, size) for c in canvases]
-    
+
     if filter_settings:
         if filter_settings[0] == "gaussian-laplace":
             filter_fn = lambda x, sigma: -ndi.gaussian_laplace(x, sigma)
             sigma = float(filter_settings[1])
 
-    [c.filter_density(filter_settings={"filter_function": filter_fn, "sigma": sigma}) for c in canvases]
+    [
+        c.filter_density(filter_settings={"filter_function": filter_fn, "sigma": sigma})
+        for c in canvases
+    ]
 
     # Define a lattice
     if lattice_settings[0] == "poisson-disk":
@@ -79,10 +82,12 @@ def rism_to_locations(rism_file, settings_file):
         [c.set_hexagonal_lattice(nrows, ncols, spacing) for c in canvases]
 
     else:
-        raise ValueError("""
+        raise ValueError(
+            """
             lattice must be specified as one of the following supported lattice types: 
             poisson-disk, rectangular, triangular, or hexagonal.
-        """)
+        """
+        )
 
     [c.calculate_pubo_coefficients(2, [amplitude, variance]) for c in canvases]
 
@@ -90,13 +95,17 @@ def rism_to_locations(rism_file, settings_file):
         size = int(lattice_settings[-1])
         [c.force_lattice_size(size) for c in canvases]
 
-    brad = float(pulse_params[0])
-    omega = float(pulse_params[1])
-    max_det = float(pulse_params[2])
-    pulse_duration = float(pulse_params[3])
-    pulse_settings = {"brad": brad, "omega": omega, "pulse_duration": pulse_duration, "max_det": max_det}
-    test_water_postions = find_water_positions(canvases, executor, MockDevice, pulse_settings)
+    pulse_settings = {
+        "brad": float(pulse_params[0]),
+        "omega": float(pulse_params[1]),
+        "pulse_duration": float(pulse_params[2]),
+        "max_det": float(pulse_params[3]),
+    }
+    test_water_postions = find_water_positions(
+        canvases, executor, MockDevice, pulse_settings
+    )
     return test_water_postions
+
 
 def executor(pulse_seq, num_samples, sim=QutipBackend):
     res = sim(pulse_seq).run()
@@ -108,13 +117,17 @@ dna_folder = f"{main_folder}/DNA"
 rna_folder = f"{main_folder}/RNA"
 wvv_folder = f"{main_folder}/4wvv"
 
+
 def rism_file(path):
     return f"{path}/prot_3drism.O.1.dx"
+
 
 main_output_folder = "aquapointer/analog/example_output"
 dna_output_folder = f"{main_output_folder}/DNA"
 rna_output_folder = f"{main_output_folder}/RNA"
 wvv_folder = f"{main_output_folder}/4wvv"
 
-locations = rism_to_locations(rism_file(dna_folder), "aquapointer/analog/analog_settings_example")
+locations = rism_to_locations(
+    rism_file(dna_folder), "aquapointer/analog/analog_settings_example"
+)
 np.savetxt(f"{dna_output_folder}/locations.txt", locations)
