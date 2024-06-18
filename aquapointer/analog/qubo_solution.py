@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import scipy
@@ -88,7 +88,8 @@ def generate_pulse_sequences(
 def run_qubo(
     canvas: DensityCanvas.DensityCanvas,
     executor: Callable[[Sequence, int], Any],
-    proc: QPUBackend,
+    device: QPUBackend,
+    pulse_settings: Dict[str, float],
     variance: float,
     amplitude: float,
     num_samples: int = 1000,
@@ -106,13 +107,12 @@ def run_qubo(
     Returns:
         Bitstring solving the QUBO for the input density slice.
     """
-    device = proc.device
 
     register = Register.from_coordinates(canvas._lattice._coords)
-    brad = proc.pulse_settings.brad
-    pulse_duration = proc.pulse_settings.pulse_duration
-    omega = proc.pulse_settings.omega
-    max_det = proc.pulse_settings.max_det
+    brad = pulse_settings["brad"]
+    pulse_duration = pulse_settings["pulse_duration"]
+    omega = pulse_settings["omega"]
+    max_det = pulse_settings["max_det"]
 
     detunings = canvas.calculate_detunings()
     pulse_sequence = generate_pulse_sequences(

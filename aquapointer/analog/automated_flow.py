@@ -1,10 +1,9 @@
 import numpy as np
 import scipy.ndimage as ndi
-from pulser import Register
 from pulser.devices import MockDevice
 from pulser_simulation import QutipBackend
+
 from aquapointer.slicing import density_file_to_grid, density_slices_by_planes
-from aquapointer.analog_digital import processor
 from aquapointer.analog import find_water_positions
 
 
@@ -91,28 +90,12 @@ def rism_to_locations(rism_file, settings_file):
         size = int(lattice_settings[-1])
         [c.force_lattice_size(size) for c in canvases]
 
-    # import registers
-    positions = []
-    registers = []
-    d_list = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5]
-    for i in range(len(d_list)):
-        with open(f'aquapointer/analog/registers/position_{i}.npy', 'rb') as file_in:
-            pos = np.load(file_in)
-        positions.append(pos)
-        registers.append(Register.from_coordinates(pos)) # this is to create a Pulser register object
-
-    rescaled_positions = []
-    for i in range(len(d_list)):
-        with open(f'aquapointer/analog/registers/rescaled_position_{i}.npy', 'rb') as file_in:
-            res_pos = np.load(file_in)
-        rescaled_positions.append(res_pos)
     brad = float(pulse_params[0])
     omega = float(pulse_params[1])
     max_det = float(pulse_params[2])
     pulse_duration = float(pulse_params[3])
-    pulse_settings = processor.PulseSettings(brad, omega, pulse_duration, max_det)
-    processor_configs = [processor.AnalogProcessor(device=MockDevice, pos=pos, pos_id=p, pulse_settings=pulse_settings) for p, pos in enumerate(positions)]
-    test_water_postions = find_water_positions(canvases, executor, processor_configs)
+    pulse_settings = {"brad": brad, "omega": omega, "pulse_duration": pulse_duration, "max_det": max_det}
+    test_water_postions = find_water_positions(canvases, executor, MockDevice, pulse_settings)
     return test_water_postions
 
 def executor(pulse_seq, num_samples, sim=QutipBackend):

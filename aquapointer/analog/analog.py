@@ -4,16 +4,16 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import scipy
 from numpy.typing import NDArray
 from pulser import Sequence
+from pulser.backend.qpu import QPUBackend
 
 from aquapointer.density_canvas.DensityCanvas import DensityCanvas
 from aquapointer.analog.qubo_solution import fit_gaussian, run_qubo
-from aquapointer.analog_digital.processor import Processor
 
 
 """High-level tools for finding the locations of water molecules in a protein
@@ -23,7 +23,8 @@ cavity."""
 def find_water_positions(
     density_canvases: List[DensityCanvas],
     executor: Callable[[Sequence, int], Any],
-    processor_configs: List[Processor],
+    device: QPUBackend,
+    pulse_settings: Dict[str, float],
     num_samples: int = 1000,
     location_clustering: Optional[Callable[[List[List[float]]], List[Any]]] = None,
 ) -> List[NDArray]:
@@ -34,7 +35,7 @@ def find_water_positions(
     Args:
         density_canvases: List of density canvas objects containing density and geometry info of the protein cavity.
         executor: Function that executes a pulse sequence on a quantum backend.
-        processor_configs: List of ``Processor`` objects storing settings for running on a quantum backend.
+        device: Backend on which the pulse sequence will run.
         num_samples: Number of times to execute the quantum experiment or simulation on the backend.
         qubo_cost: Cost function to be optimized in the QUBO.
         location_clustering: Optional function for merging duplicate locations (typically identified in different layers).
@@ -46,13 +47,14 @@ def find_water_positions(
     """
     bitstrings = []
     coords = []
-    for k, d in enumerate(density_canvases):
+    for d in density_canvases:
         params = [58, 0, 0, 48.2]
         variance, amplitude = params[0], params[3]
         bitstring = run_qubo(
                 d,
                 executor,
-                processor_configs[k],
+                device,
+                pulse_settings,
                 variance,
                 amplitude,
                 num_samples,
