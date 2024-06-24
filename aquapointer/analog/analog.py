@@ -64,8 +64,8 @@ def find_water_positions(
 
 
 def transform_to_3d_rism_coords(coords, canvas: DensityCanvas):
-    rot_coords = (canvas._rotation) @ np.array([coords[1], coords[0], 0])
-    return rot_coords + canvas._ref_point
+    rot_coords = (canvas._rotation) @ (np.array([coords[1], coords[0], 0]) + canvas._ref_point)
+    return rot_coords
 
 
 def location_clustering_kmeans(water_positions: List[List[float]]) -> List[List[float]]:
