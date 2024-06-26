@@ -117,8 +117,8 @@ def density_slices_by_planes(
         density_array, slice_og, slice_endpt = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i], shape,
         )
-        length_x = slice_endpt[0] - slice_og[0]
-        length_y = slice_endpt[1] - slice_og[1]
+        length_x = density_grid.delta[0] * density_array.shape[0]
+        length_y = density_grid.delta[1] * density_array.shape[1]
         dc = DensityCanvas(origin, length_x, length_y, density_array.shape[0], density_array.shape[1])
         dc.set_density_from_slice(density_array.transpose())
         dc.set_canvas_rotation(_generate_slice_rotation_matrix(midplane_normals[i]))
