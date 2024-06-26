@@ -28,15 +28,16 @@ For now, the script strictly requires the following parameters in the following 
     - frequency `omega` 
     - pulse duration
     - max detuning
-2. Lattice parameters:
+2. Gaussian parameters:
+    - amplitude 
+    - variance
+3. Lattice parameters:
     - lattice type (poisson-disk, rectangular, triangular, hexagonal)
     - num_x (rectangular) or n_rows (triangular or hexagonal) or 0 (placeholder for poisson-disk)
     - num_y (rectangular) or n_columns (triangular or hexagonal) or 0 (placeholder for poisson-disk)
-    - spacing
-    - size (input to `force_lattice_size`, Optional)
-3. Gaussian parameters:
-    - amplitude 
-    - variance
+    - minimum exclusion radius
+    - maximum exclusion radius
+    - size (number of points in lattice after decimation, Optional)
 4. Density filtering (Optional):
     - "filter": keyword indicating the settings on this line are for filtering, since filtering is optional
     - filter function: only Gaussian-Laplacian supported in current version of script
