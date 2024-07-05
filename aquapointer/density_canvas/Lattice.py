@@ -123,7 +123,7 @@ class Lattice:
         num = 0
 
         # if init_points is defined, inizialize queue with those points
-        if init_points:
+        if init_points is not None:
             for i,c in enumerate(init_points):
                 coords.append(np.array(c))
                 queue.append(i)
