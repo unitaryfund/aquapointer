@@ -38,8 +38,9 @@ def rism_to_locations(rism_file, settings_file):
 
     slicing_points = []
     for line in slicing_points_lines:
-        sp_list = [float(s) for s in line.split()]
-        slicing_points.append(np.array([sp_list[0:3], sp_list[3:6], sp_list[6:]]))
+            sp_list = [float(s) for s in line.split()]
+            if sp_list != []:
+                slicing_points.append(np.array([sp_list[0:3], sp_list[3:6], sp_list[6:]]))
 
     canvases = density_slices_by_planes(grid, slicing_points)
 
@@ -116,7 +117,7 @@ main_folder = "data"
 dna_folder = f"{main_folder}/DNA"
 rna_folder = f"{main_folder}/RNA"
 wvv_folder = f"{main_folder}/4wvv"
-
+sim_folder = f"{main_folder}/2a15_ph4"
 
 def rism_file(path):
     return f"{path}/prot_3drism.O.1.dx"
@@ -127,7 +128,8 @@ dna_output_folder = f"{main_output_folder}/DNA"
 rna_output_folder = f"{main_output_folder}/RNA"
 wvv_folder = f"{main_output_folder}/4wvv"
 
+sim_out_folder = f"{main_output_folder}/2a15_ph4"
 locations = rism_to_locations(
-    rism_file(dna_folder), "aquapointer/analog/analog_settings_example"
+    rism_file(sim_folder), "aquapointer/analog/analog_settings_example"
 )
-np.savetxt(f"{dna_output_folder}/locations.txt", locations)
+np.savetxt(f"{sim_out_folder}/locations.txt", locations)
