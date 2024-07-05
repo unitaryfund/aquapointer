@@ -344,11 +344,12 @@ class DensityCanvas:
         lattice = Lattice.hexagonal(nrows=nrows, ncols=ncols, spacing=spacing)
         self.set_lattice(lattice, centering=True)
 
-    def set_poisson_disk_lattice(self, spacing: tuple):
+    def set_poisson_disk_lattice(self, spacing: tuple, init_points: ArrayLike = None):
         lattice = Lattice.poisson_disk(
             density=self._density,
             length=(self._length_x, self._length_y),
             spacing=spacing,
+            init_points = init_points,
         )
         self.set_lattice(lattice, centering=True)
 

@@ -93,7 +93,7 @@ class Lattice:
         return cls(np.array(coords, dtype=float), min_spacing=spacing, center=center, type="hexagonal")
 
     @classmethod
-    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000):
+    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000, init_points: ArrayLike = None):
         """
         Poisson disk sampling with variable radius.
         density: 2d array representing probability density
@@ -122,11 +122,18 @@ class Lattice:
         queue = []
         num = 0
 
-        # pick the first point as the density maximum and initialize queue
-        first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y])
-        coords.append(first_point)
-        queue.append(num)
-        num += 1
+        # if init_points is defined, inizialize queue with those points
+        if init_points:
+            for i,c in enumerate(init_points):
+                coords.append(np.array(c))
+                queue.append(i)
+            num = len(init_points)
+        # otherwise initialize queue by picking the first point as the density maximum
+        else:
+            first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y])
+            coords.append(first_point)
+            queue.append(num)
+            num += 1
 
         # sample until max number is reached or points cannot be placed
         while len(queue) and (num<max_num):
