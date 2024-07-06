@@ -55,7 +55,7 @@ def density_slices_by_planes(
 
     origin = density_origin(density_grid)
     endpoint = density_point_boundaries(density_grid)
-
+    slicing_planes = sorted(slicing_planes, key = lambda zp: norm(zp[0, :] - origin))
     
     a = np.zeros_like(normals[0])
     a[normals[0].argmax()] = 1
