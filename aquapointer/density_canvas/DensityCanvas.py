@@ -376,7 +376,11 @@ class DensityCanvas:
             int((center[1] - self._origin[1] - size[1] / 2) / self._dy),
             int((center[1] - self._origin[1] + size[1] / 2) / self._dy),
         )
-
+        # crop to slice bounds if cropping out of slice bounds
+        if x_inds[0] > self._npoints_x:
+            x_inds = (0, self._npoints_x)
+        if y_inds[0] > self._npoints_y:
+            y_inds = (0, self._npoints_y)
         cropped_density = self._density[y_inds[0] : y_inds[1], x_inds[0] : x_inds[1]]
 
         self._origin = np.array(center)-np.array(size)/2
