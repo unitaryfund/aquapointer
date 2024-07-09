@@ -638,8 +638,8 @@ class DensityCanvas:
         The argument is the rydberg interaction coefficient C6 (default one is that
         of rydberg level n=70)"""
 
-        linear = {k: v for (k,), v in self._pubo["coeffs"][1].items()}
-        quadratic = {k: -v for k, v in self._pubo["coeffs"][2].items()}
+        linear = {k: -v for (k,), v in self._pubo["coeffs"][1].items()}
+        quadratic = {k: v for k, v in self._pubo["coeffs"][2].items()}
         coords = np.array(self._lattice._coords)
         
         # calculate rydberg interaction terms
