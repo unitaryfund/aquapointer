@@ -104,7 +104,7 @@ class Lattice:
         
         min_radius, max_radius = spacing
         length_x, length_y = length
-        scale_x, scale_y = np.array(length)/np.array(density.shape)
+        scale_x, scale_y = np.array(length)/np.array(density.shape[::-1])
 
         def _index_from_position(pos):
             idx_x = int((pos[1])/scale_x)
