@@ -663,16 +663,19 @@ class DensityCanvas:
         # calcualte threshold distances (when sum of interactions win over linear coeff)
         threshold_distances = {}
         for i in linear.keys():
-            res = 0
-            for j, dij in distances[i]:
-                if i<j:
-                    val = quadratic[(i,j)]
-                else:
-                    val = quadratic[(j,i)]
-                res += val
-                if res > linear[i]:
-                    threshold_distances[i] = dij
-                    break
+            if linear[i] < 0:
+                threshold_distances[i] = distances[i][0][1]
+            else:
+                res = 0
+                for j, dij in distances[i]:
+                    if i<j:
+                        val = quadratic[(i,j)]
+                    else:
+                        val = quadratic[(j,i)]
+                    res += val
+                    if res > linear[i]:
+                        threshold_distances[i] = dij
+                        break
 
         # calculate sum of interactions
         sum_quadratic = np.zeros(len(linear))
