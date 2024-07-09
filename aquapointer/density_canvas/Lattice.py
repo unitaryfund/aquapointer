@@ -145,8 +145,10 @@ class Lattice:
 
                 # burn a try if point falls outside space 
                 if not (0 <= new_point[0] < length_x):
+                    tries+=1
                     continue
                 if not (0 <= new_point[1] < length_y):
+                    tries+=1
                     continue
 
                 new_radius = radius_density[_index_from_position(new_point)]
