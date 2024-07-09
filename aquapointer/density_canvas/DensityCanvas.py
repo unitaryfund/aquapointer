@@ -639,6 +639,8 @@ class DensityCanvas:
         of rydberg level n=70)"""
 
         linear = {k: -v for (k,), v in self._pubo["coeffs"][1].items()}
+        sum_linear = sum(linear.values())
+        weights = {k: v/sum_linear for k,v in linear.items()}
         quadratic = {k: v for k, v in self._pubo["coeffs"][2].items()}
         coords = np.array(self._lattice._coords)
         
@@ -669,11 +671,11 @@ class DensityCanvas:
                 res = 0
                 for j, dij in distances[i]:
                     if i<j:
-                        val = quadratic[(i,j)]
+                        val = quadratic[(i,j)]*weights[j]
                     else:
-                        val = quadratic[(j,i)]
+                        val = quadratic[(j,i)]*weights[j]
                     res += val
-                    if res > linear[i]:
+                    if res > linear[i]*weights[i]:
                         threshold_distances[i] = dij
                         break
 
