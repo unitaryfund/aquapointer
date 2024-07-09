@@ -344,11 +344,12 @@ class DensityCanvas:
         lattice = Lattice.hexagonal(nrows=nrows, ncols=ncols, spacing=spacing)
         self.set_lattice(lattice, centering=True)
 
-    def set_poisson_disk_lattice(self, spacing: tuple):
+    def set_poisson_disk_lattice(self, spacing: tuple, init_points: ArrayLike = None):
         lattice = Lattice.poisson_disk(
             density=self._density,
             length=(self._length_x, self._length_y),
             spacing=spacing,
+            init_points = init_points,
         )
         self.set_lattice(lattice, centering=True)
 
@@ -637,8 +638,10 @@ class DensityCanvas:
         The argument is the rydberg interaction coefficient C6 (default one is that
         of rydberg level n=70)"""
 
-        linear = {k: v for (k,), v in self._pubo["coeffs"][1].items()}
-        quadratic = {k: -v for k, v in self._pubo["coeffs"][2].items()}
+        linear = {k: -v for (k,), v in self._pubo["coeffs"][1].items()}
+        sum_linear = sum(linear.values())
+        weights = {k: v/sum_linear for k,v in linear.items()}
+        quadratic = {k: v for k, v in self._pubo["coeffs"][2].items()}
         coords = np.array(self._lattice._coords)
         
         # calculate rydberg interaction terms
@@ -662,16 +665,19 @@ class DensityCanvas:
         # calcualte threshold distances (when sum of interactions win over linear coeff)
         threshold_distances = {}
         for i in linear.keys():
-            res = 0
-            for j, dij in distances[i]:
-                if i<j:
-                    val = quadratic[(i,j)]
-                else:
-                    val = quadratic[(j,i)]
-                res += val
-                if res > linear[i]:
-                    threshold_distances[i] = dij
-                    break
+            if linear[i] < 0:
+                threshold_distances[i] = distances[i][0][1]
+            else:
+                res = 0
+                for j, dij in distances[i]:
+                    if i<j:
+                        val = quadratic[(i,j)]*weights[j]
+                    else:
+                        val = quadratic[(j,i)]*weights[j]
+                    res += val
+                    if res > linear[i]*weights[i]:
+                        threshold_distances[i] = dij
+                        break
 
         # calculate sum of interactions
         sum_quadratic = np.zeros(len(linear))
