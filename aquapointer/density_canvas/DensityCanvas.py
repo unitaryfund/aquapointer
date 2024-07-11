@@ -1,4 +1,5 @@
 import array
+from collections import defaultdict
 import numbers
 from collections.abc import Callable
 from itertools import product
@@ -668,7 +669,7 @@ class DensityCanvas:
             distances[i] = sorted(all_d, key=lambda x: x[1], reverse=True)
 
         # calcualte threshold distances (when sum of interactions win over linear coeff)
-        threshold_distances = {}
+        threshold_distances = defaultdict(float)
         for i in linear.keys():
             if linear[i] < 0:
                 threshold_distances[i] = distances[i][0][1]
