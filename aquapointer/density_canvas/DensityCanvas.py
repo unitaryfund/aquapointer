@@ -357,9 +357,6 @@ class DensityCanvas:
     def set_canvas_rotation(self, rotation: ArrayLike):
         self._rotation = rotation
 
-    def set_canvas_ref_point(self, ref_point: ArrayLike):
-        self._ref_point = ref_point
-
     def clear_lattice(self):
         try:
             del self._lattice
