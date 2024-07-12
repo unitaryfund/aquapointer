@@ -64,7 +64,7 @@ def find_water_positions(
 
 
 def transform_to_3d_rism_coords(coords, canvas: DensityCanvas):
-    rot_coords = (canvas._rotation) @ (np.array([coords[1], coords[0], 0]) + canvas._origin)
+    rot_coords = (canvas._orientation) @ np.array([coords[1], coords[0], canvas._origin[2]])
     return rot_coords
 
 
