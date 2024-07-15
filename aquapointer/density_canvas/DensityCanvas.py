@@ -535,6 +535,7 @@ class DensityCanvas:
             raise AttributeError("Lattice needs to be defined in order to decimate it")
 
         size = min((len(lattice._coords), n))
+        print(size)
 
         # check that coefficients have been calculated
         try:
@@ -546,11 +547,11 @@ class DensityCanvas:
                 "Linear coefficients need to be calculated before decimation"
             )
 
-        # find the linear coefficient of the first point to cut
-        threshold_value = sorted(list(linear.values()))[size]
+        # find the linear coefficient of the last point to keep
+        threshold_value = sorted(list(linear.values()))[size-1]
 
         new_coords = [
-            c for i, c in enumerate(lattice._coords) if linear[(i,)] < threshold_value
+            c for i, c in enumerate(lattice._coords) if (linear[(i,)]-threshold_value) < 1e-4
         ]
         new_lattice = Lattice(
             np.array(new_coords),
@@ -661,12 +662,13 @@ class DensityCanvas:
                 dij = np.linalg.norm(coords[i]-coords[j])
                 all_d.append((j, dij))
             distances[i] = sorted(all_d, key=lambda x: x[1], reverse=True)
-
+        
         # calcualte threshold distances (when sum of interactions win over linear coeff)
         threshold_distances = {}
         for i in linear.keys():
+            threshold_distances[i] = distances[i][-1][1] #initialize as smallest distance
             if linear[i] < 0:
-                threshold_distances[i] = distances[i][0][1]
+                threshold_distances[i] = distances[i][0][1] #if negative coeff, set largest distance
             else:
                 res = 0
                 for j, dij in distances[i]:
