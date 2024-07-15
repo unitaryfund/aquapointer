@@ -535,7 +535,6 @@ class DensityCanvas:
             raise AttributeError("Lattice needs to be defined in order to decimate it")
 
         size = min((len(lattice._coords), n))
-        print(size)
 
         # check that coefficients have been calculated
         try:
