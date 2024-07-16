@@ -333,12 +333,13 @@ class DensityCanvas:
             pass
 
     def get_lattice(self, minimal_spacing: float = None):
+        coords = np.array(self._lattice._coords)
         if not minimal_spacing:
             scale_factor = 1
         else:
             distances = []
-            for i in range(len(self._lattice._coords)):
-                for j in range(i+1, len(self._lattice._coords)):
+            for i in range(len(coords)):
+                for j in range(i+1, len(coords)):
                     dij = np.linalg.norm(coords[i]-coords[j])
                     dij_exists = False
                     for d in distances:
@@ -350,7 +351,7 @@ class DensityCanvas:
             minimal_lattice_distance = min(distances)
             scale_factor = minimal_spacing/minimal_lattice_distance
 
-        return scale_factor*np.array(self._lattice._coords)
+        return scale_factor*coords
 
 
     def set_rectangular_lattice(self, num_x, num_y, spacing):
@@ -654,7 +655,7 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
 
-    def calculate_detunings(self, minimal_spacing=5, C6=5420158.53):
+    def calculate_detunings(self, minimal_spacing=None, C6=5420158.53):
         """Calculates the detunings as a function of the linear coefficients.
         The argument is the rydberg interaction coefficient C6 (default one is that
         of rydberg level n=70)"""
