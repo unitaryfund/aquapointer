@@ -332,6 +332,28 @@ class DensityCanvas:
         except AttributeError:
             pass
 
+    def get_lattice(self, minimal_spacing: float = None):
+        coords = np.array(self._lattice._coords)
+        if not minimal_spacing:
+            scale_factor = 1
+        else:
+            distances = []
+            for i in range(len(coords)):
+                for j in range(i+1, len(coords)):
+                    dij = np.linalg.norm(coords[i]-coords[j])
+                    dij_exists = False
+                    for d in distances:
+                        if abs(d-dij)<1e-8:
+                            dij_exists = True
+                            break
+                    if not dij_exists:
+                        distances.append(dij)
+            minimal_lattice_distance = min(distances)
+            scale_factor = minimal_spacing/minimal_lattice_distance
+
+        return scale_factor*coords
+
+
     def set_rectangular_lattice(self, num_x, num_y, spacing):
         lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
         self.set_lattice(lattice, centering=True)
@@ -546,11 +568,11 @@ class DensityCanvas:
                 "Linear coefficients need to be calculated before decimation"
             )
 
-        # find the linear coefficient of the first point to cut
-        threshold_value = sorted(list(linear.values()))[size]
+        # find the linear coefficient of the last point to keep
+        threshold_value = sorted(list(linear.values()))[size-1]
 
         new_coords = [
-            c for i, c in enumerate(lattice._coords) if linear[(i,)] < threshold_value
+            c for i, c in enumerate(lattice._coords) if (linear[(i,)]-threshold_value) < 1e-4
         ]
         new_lattice = Lattice(
             np.array(new_coords),
@@ -633,7 +655,7 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
 
-    def calculate_detunings(self, C6=5420158.53):
+    def calculate_detunings(self, minimal_spacing=None, C6=5420158.53):
         """Calculates the detunings as a function of the linear coefficients.
         The argument is the rydberg interaction coefficient C6 (default one is that
         of rydberg level n=70)"""
@@ -642,7 +664,7 @@ class DensityCanvas:
         sum_linear = sum(linear.values())
         weights = {k: v/sum_linear for k,v in linear.items()}
         quadratic = {k: v for k, v in self._pubo["coeffs"][2].items()}
-        coords = np.array(self._lattice._coords)
+        coords = self.get_lattice(minimal_spacing=minimal_spacing)
         
         # calculate rydberg interaction terms
         rydberg = {}
@@ -661,12 +683,13 @@ class DensityCanvas:
                 dij = np.linalg.norm(coords[i]-coords[j])
                 all_d.append((j, dij))
             distances[i] = sorted(all_d, key=lambda x: x[1], reverse=True)
-
+        
         # calcualte threshold distances (when sum of interactions win over linear coeff)
         threshold_distances = {}
         for i in linear.keys():
+            threshold_distances[i] = 0 #initialize as smallest distance
             if linear[i] < 0:
-                threshold_distances[i] = distances[i][0][1]
+                threshold_distances[i] = distances[i][0][1] #if negative coeff, set largest distance
             else:
                 res = 0
                 for j, dij in distances[i]:
