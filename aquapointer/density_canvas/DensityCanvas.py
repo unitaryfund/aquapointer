@@ -697,7 +697,7 @@ class DensityCanvas:
         # calcualte threshold distances (when sum of interactions win over linear coeff)
         threshold_distances = defaultdict(float)
         for i in linear.keys():
-            threshold_distances[i] = distances[i][-1][1] #initialize as smallest distance
+            threshold_distances[i] = 0 #initialize as smallest distance
             if linear[i] < 0:
                 threshold_distances[i] = distances[i][0][1] #if negative coeff, set largest distance
             else:

@@ -108,13 +108,13 @@ def run_qubo(
         Bitstring solving the QUBO for the input density slice.
     """
 
-    register = Register.from_coordinates(canvas._lattice._coords)
+    min_spacing = 5 # 5 is an example, but it should work well enough
+    register = Register.from_coordinates(canvas.get_lattice(minimal_spacing=min_spacing))
     brad = pulse_settings["brad"]
     pulse_duration = pulse_settings["pulse_duration"]
     omega = pulse_settings["omega"]
     max_det = pulse_settings["max_det"]
-
-    detunings = canvas.calculate_detunings()
+    detunings = canvas.calculate_detunings(minimal_spacing=min_spacing)
     pulse_sequence = generate_pulse_sequences(
         device, register, detunings, max_det, pulse_duration, omega
     )
