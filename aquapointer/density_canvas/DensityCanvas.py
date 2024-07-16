@@ -334,6 +334,28 @@ class DensityCanvas:
         except AttributeError:
             pass
 
+    def get_lattice(self, minimal_spacing: float = None):
+        coords = np.array(self._lattice._coords)
+        if not minimal_spacing:
+            scale_factor = 1
+        else:
+            distances = []
+            for i in range(len(coords)):
+                for j in range(i+1, len(coords)):
+                    dij = np.linalg.norm(coords[i]-coords[j])
+                    dij_exists = False
+                    for d in distances:
+                        if abs(d-dij)<1e-8:
+                            dij_exists = True
+                            break
+                    if not dij_exists:
+                        distances.append(dij)
+            minimal_lattice_distance = min(distances)
+            scale_factor = minimal_spacing/minimal_lattice_distance
+
+        return scale_factor*coords
+
+
     def set_rectangular_lattice(self, num_x, num_y, spacing):
         lattice = Lattice.rectangular(num_x=num_x, num_y=num_y, spacing=spacing)
         self.set_lattice(lattice, centering=True)
@@ -643,7 +665,7 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
 
-    def calculate_detunings(self, C6=5420158.53):
+    def calculate_detunings(self, minimal_spacing=None, C6=5420158.53):
         """Calculates the detunings as a function of the linear coefficients.
         The argument is the rydberg interaction coefficient C6 (default one is that
         of rydberg level n=70)"""
@@ -652,7 +674,7 @@ class DensityCanvas:
         sum_linear = sum(linear.values())
         weights = {k: v/sum_linear for k,v in linear.items()}
         quadratic = {k: v for k, v in self._pubo["coeffs"][2].items()}
-        coords = np.array(self._lattice._coords)
+        coords = self.get_lattice(minimal_spacing=minimal_spacing)
         
         # calculate rydberg interaction terms
         rydberg = {}
