@@ -117,8 +117,8 @@ def density_slices_by_planes(
         density_array, slice_origin, slice_endpt = _shape_slice(
             point_lists[i], density_lists[i], midplane_normals[i], shape,
         )
-        length_x = slice_endpt[0] - slice_origin[0]
-        length_y = slice_endpt[1] - slice_origin[1]
+        length_x = density_grid.delta[0] * density_array.shape[0]
+        length_y = density_grid.delta[1] * density_array.shape[1]
         dc = DensityCanvas(np.append(slice_origin, midplane_points[i].dot(midplane_normals[i])), length_x, length_y, density_array.shape[0], density_array.shape[1])
         dc.set_density_from_slice(density_array.transpose())
         dc.set_canvas_orientation(_generate_slice_rotation_matrix(midplane_normals[i]))
@@ -211,10 +211,12 @@ def _shape_slice(points: NDArray, density, normal: NDArray, shape)-> Tuple[NDArr
             d.append(np.mean(np.array(list(zip(*xp_list))[1])))
         point_list.append(p)
         density_list.append(np.array(d))
-        m = max([len(density) for density in density_list])
-        n = len(density_list)
+    m = shape[0]
+    n = shape[1]
     density_array = np.zeros((m, n))
-    for j in range(n):
+    if n - len(density_list) < 0:
+        density_list = density_list[int((len(density_list) - n) / 2) : n + int((len(density_list) - n) / 2)]
+    for j in range(len(density_list)):
         i = int((m - len(density_list[j])) / 2)
         density_array[i : i + len(density_list[j]), j] = density_list[j]
 
