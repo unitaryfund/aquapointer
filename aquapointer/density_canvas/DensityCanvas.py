@@ -388,26 +388,31 @@ class DensityCanvas:
 
     def crop_canvas(self, center: Tuple[float], size: Tuple[float]):
         """Crops lattice and density slice by user-specified 3D-RISM coordinates."""
-        canvas_normal = self._orientation @ [0, 0, 1]
-        canvas_origin = np.linalg.inv(self._orientation) @ self._origin
-        proj_center = center - (center - canvas_origin).dot(canvas_normal) * canvas_normal
-        canvas_center = self._orientation @ proj_center
         x_inds = (
-            int((canvas_center[0] - self._origin[0] - size[0] / 2) / self._dx),
-            int((canvas_center[0] - self._origin[0] + size[0] / 2) / self._dx),
+                int((center[0] - self._origin[0] - size[0] / 2) / self._dx),
+                int((center[0] - self._origin[0] + size[0] / 2) / self._dx)
         )
         y_inds = (
-            int((canvas_center[1] - self._origin[1] - size[1] / 2) / self._dy),
-            int((canvas_center[1] - self._origin[1] + size[1] / 2) / self._dy),
+                int((center[1] - self._origin[1] - size[1] / 2) / self._dy),
+                int((center[1] - self._origin[1] + size[1] / 2) / self._dy),
         )
-        # crop to slice bounds if cropping out of slice bounds
-        if abs(x_inds[0]) > self._npoints_x:
-            x_inds = (0, self._npoints_x)
-        if abs(y_inds[0]) > self._npoints_y:
-            y_inds = (0, self._npoints_y)
+        # if crop window out of bounds, shift to be in bounds
+        if x_inds[0] < 0 or x_inds[1] < 0:
+            x_inds = (0, int(size[0] / self._dx))
+            center = (size[0] / 2, center[1])
+        if x_inds[0] > self._npoints_x or x_inds[1] > self._npoints_x:
+            x_inds = (int(self._npoints_x - size[0]/ self._dx), self._npoints_x)
+            center = (self._length_x - size[0] / 2, center[1])
+        if y_inds[0] < 0 or y_inds[1] < 0:
+            y_inds = (0,  int(size[1] / self._dy))
+            center = (center[0], size[1] / 2)
+        if y_inds[0] > self._npoints_y or y_inds[1] > self._npoints_y:
+            y_inds = (int(self._npoints_y - size[1] / self._dy), self._npoints_y)
+            center = (center[0], (self._length_y - size[1] / 2))
+
         cropped_density = self._density[y_inds[0] : y_inds[1], x_inds[0] : x_inds[1]]
 
-        self._origin = np.array(canvas_center)-np.array(size + (0. ,))/2
+        self._origin = np.append((np.array(center) - np.array(size)/2), 0)
         self._npoints_x = cropped_density.shape[1]
         self._npoints_y = cropped_density.shape[0]
         self._length_x = self._npoints_x * self._dx

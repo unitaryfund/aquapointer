@@ -45,8 +45,8 @@ def rism_to_locations(rism_file, settings_file):
     canvases = density_slices_by_planes(grid, slicing_points)
 
     if crop_settings:
-        center = (float(crop_settings[0]), float(crop_settings[1]), float(crop_settings[2]))
-        size = (float(crop_settings[3]), float(crop_settings[4]))
+        center = (float(crop_settings[0]), float(crop_settings[1]))
+        size = (float(crop_settings[2]), float(crop_settings[3]))
         [c.crop_canvas(center, size) for c in canvases]
 
     if filter_settings:
