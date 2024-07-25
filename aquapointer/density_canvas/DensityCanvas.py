@@ -256,15 +256,22 @@ class DensityCanvas:
         self._density_type = density_type
 
     def set_density_from_gaussians(
-        self, centers: ArrayLike, amplitude: numbers.Number, variance: numbers.Number
+        self, centers: ArrayLike, amplitude: Union[numbers.Number, ArrayLike], variance: Union[numbers.Number, ArrayLike]
     ):
         self.clear_density()
         self.clear_pubo()
+        try:
+            len(amplitude)
+            amplitudes = amplitude
+            variances = variance
+        except TypeError:
+            amplitudes = [amplitude]*len(centers)
+            variances = [variance]*len(centers)
         rvs = []
-        for mu in centers:
-            rvs.append(multivariate_normal(mu, variance))
-        for rv in rvs:
-            self._density += amplitude * rv.pdf(self._pos)
+        for i,mu in enumerate(centers):
+            rvs.append(multivariate_normal(mu, variances[i]))
+        for i,rv in enumerate(rvs):
+            self._density += amplitudes[i] * rv.pdf(self._pos)
         self._empty = False
         self._centers = np.array([np.array(c) for c in centers])
         self._variance = variance
