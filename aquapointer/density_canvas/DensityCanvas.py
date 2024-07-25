@@ -655,14 +655,17 @@ class DensityCanvas:
         test.set_density_from_gaussians(candidate_centers, *mixture_params)
         return distance(self, test, **kwargs)
 
-    def calculate_detunings(self, minimal_spacing=None, C6=5420158.53):
+    def calculate_detunings(self, minimal_spacing=None, weighted=True, m=1, C6=5420158.53):
         """Calculates the detunings as a function of the linear coefficients.
         The argument is the rydberg interaction coefficient C6 (default one is that
         of rydberg level n=70)"""
 
         linear = {k: -v for (k,), v in self._pubo["coeffs"][1].items()}
         sum_linear = sum(linear.values())
-        weights = {k: v/sum_linear for k,v in linear.items()}
+        if weighted:
+            weights = {k: v/sum_linear for k,v in linear.items()}
+        else:
+            weights = {k: 1 for k,v in linear.items()}
         quadratic = {k: v for k, v in self._pubo["coeffs"][2].items()}
         coords = self.get_lattice(minimal_spacing=minimal_spacing)
         
@@ -727,7 +730,7 @@ class DensityCanvas:
             sum_quadratic[idx] = res_q/num_q 
             sum_rydberg[idx] = res_i/num_i
             
-        alpha = np.mean(sum_rydberg)/np.mean(sum_quadratic)
+        alpha = np.power(np.mean(np.power(sum_rydberg, m))/np.mean(np.power(sum_quadratic, m)), 1/m)
 
         return {k: alpha*v for k,v in linear.items()}
 
