@@ -103,7 +103,6 @@ def rism_to_locations(rism_file, settings_file):
     max_det = float(pulse_params[2])
     pulse_duration = float(pulse_params[3])
     pulse_settings = {"brad": brad, "omega": omega, "pulse_duration": pulse_duration, "max_det": max_det}
-    test_water_postions = find_water_positions(canvases, executor, MockDevice, pulse_settings)
     test_water_postions = find_water_positions(
         canvases, executor, MockDevice, pulse_settings
     )
