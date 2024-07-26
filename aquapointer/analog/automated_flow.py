@@ -6,6 +6,8 @@ from pulser_simulation import QutipBackend
 from aquapointer.slicing import density_file_to_grid, density_slices_by_planes
 from aquapointer.analog import find_water_positions
 
+from pathlib import Path
+BASE_PATH = str(Path.cwd().parent)
 
 def rism_to_locations(rism_file, settings_file):
     # load density grid from file
@@ -130,6 +132,6 @@ wvv_folder = f"{main_output_folder}/4wvv"
 
 sim_out_folder = f"{main_output_folder}/2a15_ph4"
 locations = rism_to_locations(
-    rism_file(sim_folder), "aquapointer/analog/analog_settings_example"
+    rism_file(sim_folder), "aquapointer/analog/analog_settings_example1"
 )
-np.savetxt(f"{sim_out_folder}/locations.txt", locations)
+np.savetxt(f"{sim_out_folder}/locations1.txt", locations)
