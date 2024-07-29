@@ -114,7 +114,7 @@ def executor(pulse_seq, num_samples, sim=QutipBackend):
     return res.sample_final_state(num_samples)
 
 
-main_folder = "data"
+main_folder = BASE_PATH + "/data"
 dna_folder = f"{main_folder}/DNA"
 rna_folder = f"{main_folder}/RNA"
 wvv_folder = f"{main_folder}/4wvv"
@@ -124,13 +124,13 @@ def rism_file(path):
     return f"{path}/prot_3drism.O.1.dx"
 
 
-main_output_folder = "aquapointer/analog/example_output"
+main_output_folder = BASE_PATH + "/aquapointer/analog/example_output"
 dna_output_folder = f"{main_output_folder}/DNA"
 rna_output_folder = f"{main_output_folder}/RNA"
 wvv_folder = f"{main_output_folder}/4wvv"
 
 sim_out_folder = f"{main_output_folder}/2a15_ph4"
 locations = rism_to_locations(
-    rism_file(sim_folder), "aquapointer/analog/analog_settings_example1"
+    rism_file(sim_folder), BASE_PATH + "/aquapointer/analog/analog_settings_example1"
 )
 np.savetxt(f"{sim_out_folder}/locations1.txt", locations)
