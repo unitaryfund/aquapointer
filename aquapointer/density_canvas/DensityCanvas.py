@@ -1,4 +1,5 @@
 import array
+from collections import defaultdict
 import numbers
 from collections.abc import Callable
 from itertools import product
@@ -251,7 +252,8 @@ class DensityCanvas:
         self.clear_density()
         self.clear_pubo()
         slice_filter = filter_settings.pop("filter_function")
-        self._density = slice_filter(slice, **filter_settings)
+        sigma = filter_settings.pop("sigma")
+        self._density = slice_filter(slice, sigma, **filter_settings)
         self._empty = False
         self._density_type = density_type
 
@@ -375,8 +377,8 @@ class DensityCanvas:
         )
         self.set_lattice(lattice, centering=True)
 
-    def set_canvas_rotation(self, rotation: ArrayLike):
-        self.canvas_rotation = rotation
+    def set_canvas_orientation(self, rotation_matrix: ArrayLike):
+        self._orientation = rotation_matrix
 
     def clear_lattice(self):
         try:
@@ -385,19 +387,32 @@ class DensityCanvas:
             pass
 
     def crop_canvas(self, center: Tuple[float], size: Tuple[float]):
-        """Crops lattice and density slice by user-specified 2D coordinates."""
+        """Crops lattice and density slice by user-specified 3D-RISM coordinates."""
         x_inds = (
-            int((center[0] - self._origin[0] - size[0] / 2) / self._dx),
-            int((center[0] - self._origin[0] + size[0] / 2) / self._dx),
+                int((center[0] - self._origin[0] - size[0] / 2) / self._dx),
+                int((center[0] - self._origin[0] + size[0] / 2) / self._dx)
         )
         y_inds = (
-            int((center[1] - self._origin[1] - size[1] / 2) / self._dy),
-            int((center[1] - self._origin[1] + size[1] / 2) / self._dy),
+                int((center[1] - self._origin[1] - size[1] / 2) / self._dy),
+                int((center[1] - self._origin[1] + size[1] / 2) / self._dy),
         )
+        # if crop window out of bounds, shift to be in bounds
+        if x_inds[0] < 0 or x_inds[1] < 0:
+            x_inds = (0, int(size[0] / self._dx))
+            center = (size[0] / 2, center[1])
+        if x_inds[0] > self._npoints_x or x_inds[1] > self._npoints_x:
+            x_inds = (int(self._npoints_x - size[0]/ self._dx), self._npoints_x)
+            center = (self._length_x - size[0] / 2, center[1])
+        if y_inds[0] < 0 or y_inds[1] < 0:
+            y_inds = (0,  int(size[1] / self._dy))
+            center = (center[0], size[1] / 2)
+        if y_inds[0] > self._npoints_y or y_inds[1] > self._npoints_y:
+            y_inds = (int(self._npoints_y - size[1] / self._dy), self._npoints_y)
+            center = (center[0], (self._length_y - size[1] / 2))
 
         cropped_density = self._density[y_inds[0] : y_inds[1], x_inds[0] : x_inds[1]]
 
-        self._origin = np.array(center)-np.array(size)/2
+        self._origin = np.append((np.array(center) - np.array(size)/2), 0)
         self._npoints_x = cropped_density.shape[1]
         self._npoints_y = cropped_density.shape[0]
         self._length_x = self._npoints_x * self._dx
@@ -685,7 +700,7 @@ class DensityCanvas:
             distances[i] = sorted(all_d, key=lambda x: x[1], reverse=True)
         
         # calcualte threshold distances (when sum of interactions win over linear coeff)
-        threshold_distances = {}
+        threshold_distances = defaultdict(float)
         for i in linear.keys():
             threshold_distances[i] = 0 #initialize as smallest distance
             if linear[i] < 0:
@@ -823,3 +838,6 @@ class DensityCanvas:
             draw_connections,
         )
         plt.show()
+
+    def _set_water_coords_from_qubo(self, coords):
+        self._coords = coords
