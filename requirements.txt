@@ -1,8 +1,9 @@
 qiskit
+qiskit-aer
 jupyter
 pulser
-numpy
-scipy
+numpy<1.29.0,>=1.22.4
+scipy<1.13
 GridDataFormats
 numba
 sphinx_autodoc_typehints
