@@ -8,3 +8,4 @@ GridDataFormats
 numba
 sphinx_autodoc_typehints
 pylatexenc
+skbuild
