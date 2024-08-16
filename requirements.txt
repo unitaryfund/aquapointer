@@ -7,3 +7,4 @@ GridDataFormats
 numba
 sphinx_autodoc_typehints
 pylatexenc
+anyio==3.*
