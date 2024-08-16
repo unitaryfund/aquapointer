@@ -7,4 +7,3 @@ GridDataFormats
 numba
 sphinx_autodoc_typehints
 pylatexenc
-scikit-build
