@@ -9,4 +9,4 @@ numba
 sphinx_autodoc_typehints
 pylatexenc
 anyio==3.*
-opencv-python<4.3.0
+opencv<4.3.0
