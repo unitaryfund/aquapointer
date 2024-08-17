@@ -1,5 +1,4 @@
 qiskit
-qiskit-aer
 jupyter
 pulser
 numpy<1.29.0,>=1.22.4
@@ -9,4 +8,3 @@ numba
 sphinx_autodoc_typehints
 pylatexenc
 anyio==3.*
-opencv<4.3.0
