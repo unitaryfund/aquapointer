@@ -1,4 +1,6 @@
 qiskit
+scikit-build
+qiskit-aer
 jupyter
 pulser
 numpy<1.29.0,>=1.22.4
