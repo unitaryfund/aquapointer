@@ -1,4 +1,5 @@
 qiskit
+opencv-python<4.3.0
 scikit-build
 qiskit-aer
 jupyter
