@@ -18,7 +18,10 @@ python setup.py install
 ```
 
 ## Documentation
-The documentation is found in the `docs` folder. To install the documentation you need to install `sphinx` and install the development environment.
+
+See https://aquapointer.readthedocs.io/en/latest/ for the latest documentation!
+
+The documentation can also be found in the `docs` folder. To install the documentation you need to install `sphinx` and install the development environment.
 ```
 pip install sphinx
 pip install -e .

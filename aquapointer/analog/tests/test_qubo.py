@@ -15,10 +15,8 @@ from pulser.waveforms import InterpolatedWaveform
 sys.path.append("../aquapointer/")
 from qubo_solution import (
     best_solution_from_samples,
-    calculate_one_body_qubo_coeffs,
     generate_pulse_sequences,
     run_qubo,
-    scale_detunings,
 )
 
 

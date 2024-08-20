@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import numpy as np
 import scipy
@@ -13,20 +13,8 @@ from pulser import Pulse, Register, Sequence
 from pulser.backend.qpu import QPUBackend
 from pulser.waveforms import InterpolatedWaveform
 
+from aquapointer.density_canvas import DensityCanvas
 import aquapointer.analog.utils.detuning_scale_utils as dsu
-
-
-def default_cost(
-    rescaled_pos: NDArray,
-    density: NDArray,
-    variance: float,
-    bitstring: str,
-    brad: float,
-    amp: float,
-) -> List[Tuple[float]]:
-    r"""calculate QUBO cost of each bitstring in terms of the Ising energy"""
-
-    return dsu.ising_energies(rescaled_pos, density, variance, [bitstring], brad, amp)
 
 
 def scale_gaussian(
@@ -73,65 +61,6 @@ def fit_gaussian(density: NDArray) -> Tuple[float]:
     return parameters
 
 
-def calculate_one_body_qubo_coeffs(
-    density: NDArray, rescaled_pos: NDArray, variance: float, pos: NDArray
-) -> Tuple[NDArray, float]:
-    r"""Calculates the one-body coefficients of the QUBO.
-
-    Args:
-        density: Density slices of the protein cavity as a 2-D array of density values.
-        rescaled_pos: Array of rescaled register positions.
-        variance: Variance of the distribution fit to the density data.
-        pos: Array of register positions.
-
-    Returns:
-        Tuple of an array of one-body QUBO coefficients and their corresponding scaling.
-    """
-    gamma_list = dsu.gamma_list(density, rescaled_pos, variance)
-    distances_density = dsu.find_possible_distances(rescaled_pos)
-    distances_register = dsu.find_possible_distances(pos)
-    scale = distances_density[0] / distances_register[0]
-    return gamma_list, scale
-
-
-def scale_detunings(
-    density: NDArray,
-    pos: NDArray,
-    rescaled_pos: NDArray,
-    brad: float,
-    variance: float,
-    max_det: float,
-) -> NDArray:
-    r"""Calculates the detunings to be used for the QUBO.
-
-    Args:
-        density: Density slices of the protein cavity as a 2-D array of density values.
-        pos: Array of register positions.
-        rescaled_pos: Array of rescaled register positions.
-        variance: Variance of the distribution fit to the density data.
-        brad: Blockade radius distance (in micrometers).
-        max_det: Maximum detuning allowed by the device.
-
-    Returns:
-        Tuple of an array of one-body QUBO coefficients and their corresponding scaling.
-    """
-    gamma_list, scale = calculate_one_body_qubo_coeffs(
-        density, rescaled_pos, variance, pos
-    )
-    dets = np.array([item for item in gamma_list])
-    for i in range(len(pos)):
-        # shift every value by the mean of neighboring detunings
-        # a neighbor is defined as atoms within a blockade radius distance
-        dets[i] -= np.mean(
-            dsu.neighbouring_gamma_list(
-                density, rescaled_pos, rescaled_pos[i], scale * brad, variance
-            )
-        )
-    # rescale every detuning such that the maximum detuning is `max_det`
-    dets *= max_det / np.max(np.abs(dets))
-    return dets
-
-
 def generate_pulse_sequences(
     device: QPUBackend,
     register: Register,
@@ -157,20 +86,18 @@ def generate_pulse_sequences(
 
 
 def run_qubo(
-    density: NDArray,
+    canvas: DensityCanvas.DensityCanvas,
     executor: Callable[[Sequence, int], Any],
-    proc: QPUBackend,
+    device: QPUBackend,
+    pulse_settings: Dict[str, float],
     variance: float,
     amplitude: float,
-    qubo_cost: Callable[
-        [NDArray, NDArray, float, str, float, float], float
-    ] = default_cost,
     num_samples: int = 1000,
 ) -> str:
     r"""Obtain bitstring solving the QUBO problem for the input density slice.
     
     Args:
-        density: Density slices of the protein cavity as a 2-D array of density values.
+        canvas: Density canvas object containing density and coordinate info.
         executor: Function that executes a pulse sequence on a quantum backend.
         proc: ``Processor`` object storing settings for running on a quantum backend.
 
@@ -180,48 +107,39 @@ def run_qubo(
     Returns:
         Bitstring solving the QUBO for the input density slice.
     """
-    pos = proc.pos[0]
-    rescaled_pos = proc.scale_grid_to_register()
-    device = proc.device
-    register = proc.register
-    brad = proc.pulse_settings.brad
-    pulse_duration = proc.pulse_settings.pulse_duration
-    omega = proc.pulse_settings.omega
-    max_det = proc.pulse_settings.max_det
 
-    dets = scale_detunings(density, pos, rescaled_pos, brad, variance, max_det)
+    min_spacing = 5 # 5 is an example, but it should work well enough
+    register = Register.from_coordinates(canvas.get_lattice(minimal_spacing=min_spacing))
+    brad = pulse_settings["brad"]
+    pulse_duration = pulse_settings["pulse_duration"]
+    omega = pulse_settings["omega"]
+    max_det = pulse_settings["max_det"]
+    detunings = canvas.calculate_detunings(minimal_spacing=min_spacing)
     pulse_sequence = generate_pulse_sequences(
-        device, register, dets, max_det, pulse_duration, omega
+        device, register, detunings, max_det, pulse_duration, omega
     )
     samples = executor(pulse_sequence, num_samples)
     solution = best_solution_from_samples(
         samples,
-        rescaled_pos,
-        density,
+        canvas,
         brad,
         variance,
-        amplitude,
-        qubo_cost,
+        amplitude
     )
     return solution
 
 
 def best_solution_from_samples(
     samples: str,
-    rescaled_pos: NDArray,
-    density: NDArray,
+    canvas: DensityCanvas.DensityCanvas,
     brad: float,
     var: float,
     amp: float,
-    qubo_cost: Callable[
-        [NDArray, NDArray, float, str, float, float], float
-    ] = default_cost,
 ) -> str:
     r"""Identify sampled bitstring with lowest QUBO cost for the input density slice.
 
     Args:
         samples: Bitstring samples obtained from executing the pulse sequence.
-        rescaled_pos: Array of rescaled register positions.
         density: Density slices of the protein cavity as a 2-D array of density values.
         brad: Blockade radius distance (in micrometers).
         var: Variance of the fitted density distribution.
@@ -238,12 +156,10 @@ def best_solution_from_samples(
 
     for bitstring, count in quantum_solutions:
         # calculate QUBO cost of bitstring
-        cost = qubo_cost(rescaled_pos, density, var, bitstring, brad, amp)
+        cost = canvas.calculate_bitstring_cost_from_coefficients(bitstring) 
         # returns empty whenever the blockade constraint is not respected
         try:
-            i_bit = cost[0][0]
-            i_en = cost[0][1]
-            quantum_plus_classical_solutions.append((bitstring, count, i_en))
+            quantum_plus_classical_solutions.append((bitstring, count, cost))
 
         except IndexError:
             i_bit = bitstring

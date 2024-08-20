@@ -93,7 +93,7 @@ class Lattice:
         return cls(np.array(coords, dtype=float), min_spacing=spacing, center=center, type="hexagonal")
 
     @classmethod
-    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000):
+    def poisson_disk(cls, density: ArrayLike, length: tuple, spacing: tuple, max_num: int = 8000, init_points: ArrayLike = None):
         """
         Poisson disk sampling with variable radius.
         density: 2d array representing probability density
@@ -104,7 +104,7 @@ class Lattice:
         
         min_radius, max_radius = spacing
         length_x, length_y = length
-        scale_x, scale_y = np.array(length)/np.array(density.shape)
+        scale_x, scale_y = np.array(length)/np.array(density.shape[::-1])
 
         def _index_from_position(pos):
             idx_x = int((pos[1])/scale_x)
@@ -122,11 +122,18 @@ class Lattice:
         queue = []
         num = 0
 
-        # pick the first point as the density maximum and initialize queue
-        first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y])
-        coords.append(first_point)
-        queue.append(num)
-        num += 1
+        # if init_points is defined, inizialize queue with those points
+        if init_points is not None:
+            for i,c in enumerate(init_points):
+                coords.append(np.array(c))
+                queue.append(i)
+            num = len(init_points)
+        # otherwise initialize queue by picking the first point as the density maximum
+        else:
+            first_point = np.array([np.random.rand()*length_x, np.random.rand()*length_y])
+            coords.append(first_point)
+            queue.append(num)
+            num += 1
 
         # sample until max number is reached or points cannot be placed
         while len(queue) and (num<max_num):
@@ -145,8 +152,10 @@ class Lattice:
 
                 # burn a try if point falls outside space 
                 if not (0 <= new_point[0] < length_x):
+                    tries+=1
                     continue
                 if not (0 <= new_point[1] < length_y):
+                    tries+=1
                     continue
 
                 new_radius = radius_density[_index_from_position(new_point)]
