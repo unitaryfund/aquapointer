@@ -12,10 +12,15 @@ Package applying quantum algorithms to find locations of water molecules in a pr
 You can use [this notebook](notebooks/aquapointer_demo.ipynb) to get started with aquapointer.
 
 ## Installing aquapointer
-From the top level of the repository, where the `setup.py` file is found, just run
+Install the latest released version of Aquapointer via the command `pip install aquapointer`.
+
+Alternatively, the development install can be done by setting the working directory to the top level of the repository and running `pip install -e .`
+
+You can also run the setup command from the top level of the repository, where the `setup.py` file is found
 ```
 python setup.py install
 ```
+Finally, a Dockerfile is availble for running the automated script in a container.
 
 ## Documentation
 
